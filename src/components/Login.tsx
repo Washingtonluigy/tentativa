@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { LogIn } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import logo from '../assets/Design sem nome (1) copy.png';
 
 interface LoginProps {
   onRegisterClick: () => void;
@@ -32,9 +32,11 @@ export function Login({ onRegisterClick, onProfessionalClick }: LoginProps) {
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-purple-100 to-purple-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-10">
         <div className="flex justify-center mb-8">
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-5 rounded-2xl shadow-lg">
-            <LogIn className="w-10 h-10 text-white" strokeWidth={2.5} />
-          </div>
+          <img
+            src={logo}
+            alt="AmaH Logo"
+            className="w-32 h-32 object-contain"
+          />
         </div>
 
         <h1 className="text-4xl font-bold text-center text-gray-800 mb-3 tracking-tight">
