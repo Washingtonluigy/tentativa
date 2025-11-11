@@ -30,6 +30,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [urgencyMode, setUrgencyMode] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -136,25 +137,49 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     setProfessionals(formatted);
   };
 
+  const handleCategorySelect = (categoryId: string, isUrgent: boolean = false) => {
+    setSelectedCategory(categoryId);
+    setUrgencyMode(isUrgent);
+  };
+
   if (selectedCategory && professionals.length >= 0) {
-    const filteredProfessionals = professionals.filter(p =>
+    let filteredProfessionals = professionals.filter(p =>
       p.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    if (urgencyMode) {
+      filteredProfessionals = filteredProfessionals.filter(p => p.availability_status === 'available');
+    }
+
     return (
       <div className="p-4 pb-20">
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => {
-              setSelectedCategory(null);
-              setProfessionals([]);
-              setSearchTerm('');
-            }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
-          </button>
-          <h2 className="text-2xl font-bold text-gray-800">Profissionais</h2>
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => {
+                setSelectedCategory(null);
+                setProfessionals([]);
+                setSearchTerm('');
+                setUrgencyMode(false);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition"
+            >
+              <ArrowLeft className="w-6 h-6 text-gray-700" />
+            </button>
+            <h2 className="text-2xl font-bold text-gray-800">Profissionais</h2>
+          </div>
+
+          {urgencyMode && (
+            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 text-red-700">
+                <AlertCircle className="w-5 h-5" />
+                <span className="font-semibold">Modo Urgência</span>
+              </div>
+              <p className="text-sm text-red-600 mt-1">
+                Mostrando apenas profissionais disponíveis agora
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="relative mb-4">
@@ -244,7 +269,12 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         {filteredProfessionals.length === 0 && (
           <div className="text-center py-12">
             <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600">Nenhum profissional encontrado</p>
+            <p className="text-gray-600">
+              {urgencyMode
+                ? 'Nenhum profissional disponível no momento. Tente novamente mais tarde ou desative o modo urgência.'
+                : 'Nenhum profissional encontrado'
+              }
+            </p>
           </div>
         )}
       </div>
@@ -276,11 +306,11 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
 
       <div className="px-4 py-2 space-y-4">
         {categories.map((category) => (
-          <button
-            key={category.id}
-            onClick={() => setSelectedCategory(category.id)}
-            className="relative w-full h-40 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
-          >
+          <div key={category.id} className="space-y-2">
+            <button
+              onClick={() => handleCategorySelect(category.id, false)}
+              className="relative w-full h-40 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
+            >
             <div
               className="absolute inset-0 bg-cover bg-center"
               style={{
@@ -300,7 +330,16 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                 </p>
               )}
             </div>
-          </button>
+            </button>
+
+            <button
+              onClick={() => handleCategorySelect(category.id, true)}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 text-white py-3 px-4 rounded-xl font-bold shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02] flex items-center justify-center gap-2"
+            >
+              <AlertCircle className="w-5 h-5" />
+              URGÊNCIA - {category.name}
+            </button>
+          </div>
         ))}
       </div>
 
