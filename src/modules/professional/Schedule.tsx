@@ -38,16 +38,19 @@ export function Schedule() {
 
   const loadProfessionalData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const userDataStr = localStorage.getItem('user');
+      if (!userDataStr) {
         setLoading(false);
         return;
       }
 
+      const userData = JSON.parse(userDataStr);
+      const userId = userData.id;
+
       const { data: profData, error } = await supabase
         .from('professionals')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) {

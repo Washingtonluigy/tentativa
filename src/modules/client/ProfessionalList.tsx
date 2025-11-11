@@ -196,9 +196,17 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
               className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
             >
               <div className="flex items-start gap-3 mb-3">
-                <div className="bg-teal-100 p-3 rounded-full">
-                  <User className="w-8 h-8 text-teal-600" />
-                </div>
+                {professional.photo_url ? (
+                  <img
+                    src={professional.photo_url}
+                    alt={professional.full_name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-teal-100"
+                  />
+                ) : (
+                  <div className="bg-teal-100 p-3 rounded-full">
+                    <User className="w-8 h-8 text-teal-600" />
+                  </div>
+                )}
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-800 text-lg">{professional.full_name}</h3>
                   <p className="text-sm text-teal-600">{professional.category_name}</p>
