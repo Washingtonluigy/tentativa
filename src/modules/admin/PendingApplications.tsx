@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { CheckCircle, XCircle, Clock, Mail, Phone, MapPin, Briefcase, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Mail, Phone, MapPin, Briefcase, Calendar, User } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -12,6 +12,7 @@ interface Application {
   state: string;
   city: string;
   professional_references: string;
+  photo_url: string | null;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
 }
@@ -154,18 +155,35 @@ export default function PendingApplications() {
           {applications.map((app) => (
             <div key={app.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow">
               <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{app.full_name}</h3>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Briefcase className="w-4 h-4" />
-                      <span>{app.profession}</span>
-                      <span className="text-gray-400">•</span>
-                      <Calendar className="w-4 h-4" />
-                      <span>{app.experience_years} anos de experiência</span>
+                <div className="flex gap-4 mb-4">
+                  {app.photo_url ? (
+                    <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                      <img
+                        src={app.photo_url}
+                        alt={app.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <User className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">{app.full_name}</h3>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Briefcase className="w-4 h-4" />
+                          <span>{app.profession}</span>
+                          <span className="text-gray-400">•</span>
+                          <Calendar className="w-4 h-4" />
+                          <span>{app.experience_years} anos de experiência</span>
+                        </div>
+                      </div>
+                      {getStatusBadge(app.status)}
                     </div>
                   </div>
-                  {getStatusBadge(app.status)}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

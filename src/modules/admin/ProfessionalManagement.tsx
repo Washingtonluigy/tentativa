@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Upload, X, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Category {
@@ -25,6 +25,9 @@ export function ProfessionalManagement() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -58,7 +61,7 @@ export function ProfessionalManagement() {
 
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('full_name, phone')
+          .select('full_name, phone, photo_url')
           .eq('user_id', p.user_id)
           .maybeSingle();
 
@@ -96,8 +99,57 @@ export function ProfessionalManagement() {
     }
   };
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione apenas arquivos de imagem');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 5MB');
+        return;
+      }
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadPhoto = async (): Promise<string | null> => {
+    if (!photoFile) return null;
+
+    setUploading(true);
+    const fileExt = photoFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('professional-photos')
+      .upload(filePath, photoFile);
+
+    setUploading(false);
+
+    if (uploadError) {
+      console.error('Erro ao fazer upload:', uploadError);
+      alert('Erro ao fazer upload da foto: ' + uploadError.message);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('professional-photos')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const photoUrl = await uploadPhoto();
 
     if (editingId) {
       const professional = professionals.find(p => p.id === editingId);
@@ -107,7 +159,8 @@ export function ProfessionalManagement() {
         .from('profiles')
         .update({
           full_name: formData.fullName,
-          phone: formData.phone
+          phone: formData.phone,
+          ...(photoUrl && { photo_url: photoUrl })
         })
         .eq('user_id', professional.user_id);
 
@@ -138,7 +191,8 @@ export function ProfessionalManagement() {
         .insert([{
           user_id: userData.id,
           full_name: formData.fullName,
-          phone: formData.phone
+          phone: formData.phone,
+          photo_url: photoUrl
         }]);
 
       await supabase
@@ -163,12 +217,19 @@ export function ProfessionalManagement() {
       references: '',
       description: '',
     });
+    setPhotoFile(null);
+    setPhotoPreview('');
     setEditingId(null);
     setShowForm(false);
     loadProfessionals();
   };
 
   const handleEdit = async (professional: Professional) => {
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('photo_url')
+      .eq('user_id', professional.user_id)
+      .maybeSingle();
     const { data: profData } = await supabase
       .from('professionals')
       .select('professional_references, description')
@@ -185,6 +246,7 @@ export function ProfessionalManagement() {
       references: profData?.professional_references || '',
       description: profData?.description || '',
     });
+    setPhotoPreview(profileData?.photo_url || '');
     setEditingId(professional.id);
     setShowForm(true);
   };
@@ -226,6 +288,8 @@ export function ProfessionalManagement() {
                 references: '',
                 description: '',
               });
+              setPhotoFile(null);
+              setPhotoPreview('');
             }}
             className="text-gray-600 hover:text-gray-800"
           >
@@ -234,6 +298,53 @@ export function ProfessionalManagement() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Foto do Profissional
+            </label>
+            <p className="text-xs text-gray-500 mb-3">
+              Adicione uma foto do profissional para gerar mais confiança aos clientes
+            </p>
+
+            {photoPreview ? (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-200">
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPhotoFile(null);
+                    setPhotoPreview('');
+                  }}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-teal-500 transition">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                    <User className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <Upload className="w-8 h-8 text-gray-400 mb-3" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Clique para adicionar foto</span>
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG ou WEBP (MAX. 5MB)</p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                />
+              </label>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Nome Completo
@@ -348,9 +459,10 @@ export function ProfessionalManagement() {
 
           <button
             type="submit"
-            className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
+            disabled={uploading}
+            className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {editingId ? 'Salvar Alterações' : 'Cadastrar Profissional'}
+            {uploading ? 'Fazendo upload...' : editingId ? 'Salvar Alterações' : 'Cadastrar Profissional'}
           </button>
         </form>
       </div>
