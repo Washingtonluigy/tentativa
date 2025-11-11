@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
+import ProfessionalApplication from './components/ProfessionalApplication';
 import { AdminModule } from './modules/admin/AdminModule';
 import { ProfessionalModule } from './modules/professional/ProfessionalModule';
 import { ClientModule } from './modules/client/ClientModule';
@@ -9,6 +10,7 @@ import { ClientModule } from './modules/client/ClientModule';
 function AppContent() {
   const { user, loading } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
+  const [showProfessionalApplication, setShowProfessionalApplication] = useState(false);
 
   if (loading) {
     return (
@@ -22,10 +24,17 @@ function AppContent() {
   }
 
   if (!user) {
+    if (showProfessionalApplication) {
+      return <ProfessionalApplication onBack={() => setShowProfessionalApplication(false)} />;
+    }
+
     return showRegister ? (
       <Register onLoginClick={() => setShowRegister(false)} />
     ) : (
-      <Login onRegisterClick={() => setShowRegister(true)} />
+      <Login
+        onRegisterClick={() => setShowRegister(true)}
+        onProfessionalClick={() => setShowProfessionalApplication(true)}
+      />
     );
   }
 

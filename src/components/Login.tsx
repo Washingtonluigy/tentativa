@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface LoginProps {
   onRegisterClick: () => void;
+  onProfessionalClick: () => void;
 }
 
-export function Login({ onRegisterClick }: LoginProps) {
+export function Login({ onRegisterClick, onProfessionalClick }: LoginProps) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -87,16 +88,34 @@ export function Login({ onRegisterClick }: LoginProps) {
           </button>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-gray-600 text-base">
-            Não tem uma conta?{' '}
-            <button
-              onClick={onRegisterClick}
-              className="text-purple-600 font-bold hover:text-purple-700 transition-colors underline-offset-4 hover:underline"
-            >
-              Criar conta
-            </button>
-          </p>
+        <div className="mt-8 space-y-4">
+          <div className="text-center">
+            <p className="text-gray-600 text-base">
+              Não tem uma conta?{' '}
+              <button
+                onClick={onRegisterClick}
+                className="text-purple-600 font-bold hover:text-purple-700 transition-colors underline-offset-4 hover:underline"
+              >
+                Criar conta
+              </button>
+            </p>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">ou</span>
+            </div>
+          </div>
+
+          <button
+            onClick={onProfessionalClick}
+            className="w-full py-3 px-4 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors"
+          >
+            Sou Profissional
+          </button>
         </div>
       </div>
     </div>
