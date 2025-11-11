@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Folder, Edit, Trash2 } from 'lucide-react';
+import { Plus, Folder, Edit, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -16,6 +16,9 @@ export function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,8 +40,58 @@ export function CategoryManagement() {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Por favor, selecione apenas arquivos de imagem');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('A imagem deve ter no máximo 5MB');
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return formData.imageUrl || null;
+
+    setUploading(true);
+    const fileExt = imageFile.name.split('.').pop();
+    const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('category-images')
+      .upload(filePath, imageFile);
+
+    setUploading(false);
+
+    if (uploadError) {
+      console.error('Erro ao fazer upload:', uploadError);
+      alert('Erro ao fazer upload da imagem: ' + uploadError.message);
+      return null;
+    }
+
+    const { data } = supabase.storage
+      .from('category-images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const uploadedImageUrl = await uploadImage();
+    if (imageFile && !uploadedImageUrl) return;
 
     if (editingId) {
       const { error } = await supabase
@@ -46,7 +99,7 @@ export function CategoryManagement() {
         .update({
           name: formData.name,
           description: formData.description,
-          image_url: formData.imageUrl || null,
+          image_url: uploadedImageUrl,
         })
         .eq('id', editingId);
 
@@ -61,7 +114,7 @@ export function CategoryManagement() {
         .insert([{
           name: formData.name,
           description: formData.description,
-          image_url: formData.imageUrl || null,
+          image_url: uploadedImageUrl,
           created_by: user?.id
         }]);
 
@@ -73,6 +126,8 @@ export function CategoryManagement() {
     }
 
     setFormData({ name: '', description: '', imageUrl: '' });
+    setImageFile(null);
+    setImagePreview('');
     setEditingId(null);
     setShowForm(false);
     loadCategories();
@@ -84,6 +139,7 @@ export function CategoryManagement() {
       description: category.description,
       imageUrl: category.image_url || '',
     });
+    setImagePreview(category.image_url || '');
     setEditingId(category.id);
     setShowForm(true);
   };
@@ -99,6 +155,12 @@ export function CategoryManagement() {
     }
   };
 
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview('');
+    setFormData({ ...formData, imageUrl: '' });
+  };
+
   if (showForm) {
     return (
       <div className="p-4 pb-20">
@@ -111,6 +173,8 @@ export function CategoryManagement() {
               setShowForm(false);
               setEditingId(null);
               setFormData({ name: '', description: '', imageUrl: '' });
+              setImageFile(null);
+              setImagePreview('');
             }}
             className="text-gray-600 hover:text-gray-800"
           >
@@ -148,25 +212,49 @@ export function CategoryManagement() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL da Imagem
+              Imagem da Categoria
             </label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-              placeholder="https://exemplo.com/imagem.jpg"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Cole a URL de uma imagem do Pexels, Unsplash ou outro site
-            </p>
+
+            {imagePreview ? (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-200">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-teal-500 transition">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                  <p className="mb-2 text-sm text-gray-500">
+                    <span className="font-semibold">Clique para fazer upload</span>
+                  </p>
+                  <p className="text-xs text-gray-500">PNG, JPG ou WEBP (MAX. 5MB)</p>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                />
+              </label>
+            )}
           </div>
 
           <button
             type="submit"
-            className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
+            disabled={uploading}
+            className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {editingId ? 'Salvar Alterações' : 'Criar Categoria'}
+            {uploading ? 'Fazendo upload...' : editingId ? 'Salvar Alterações' : 'Criar Categoria'}
           </button>
         </form>
       </div>
@@ -193,9 +281,19 @@ export function CategoryManagement() {
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
           >
             <div className="flex items-start gap-3">
-              <div className="bg-teal-100 p-3 rounded-lg">
-                <Folder className="w-6 h-6 text-teal-600" />
-              </div>
+              {category.image_url ? (
+                <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                  <img
+                    src={category.image_url}
+                    alt={category.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="bg-teal-100 p-3 rounded-lg">
+                  <Folder className="w-6 h-6 text-teal-600" />
+                </div>
+              )}
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-800">{category.name}</h3>
                 {category.description && (
