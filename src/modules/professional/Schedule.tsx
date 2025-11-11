@@ -39,20 +39,32 @@ export function Schedule() {
   const loadProfessionalData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-      const { data: profData } = await supabase
+      const { data: profData, error } = await supabase
         .from('professionals')
         .select('id')
         .eq('user_id', user.id)
         .maybeSingle();
 
+      if (error) {
+        console.error('Erro ao buscar profissional:', error);
+        setLoading(false);
+        return;
+      }
+
       if (profData) {
         setProfessionalId(profData.id);
-        loadAvailability(profData.id);
+        await loadAvailability(profData.id);
+      } else {
+        setLoading(false);
       }
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
+      setLoading(false);
     }
   };
 
@@ -149,6 +161,20 @@ export function Schedule() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!professionalId) {
+    return (
+      <div className="p-4 pb-20">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+          <Calendar className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Perfil não encontrado</h3>
+          <p className="text-gray-600">
+            Você ainda não está cadastrado como profissional. Entre em contato com o administrador.
+          </p>
+        </div>
       </div>
     );
   }
