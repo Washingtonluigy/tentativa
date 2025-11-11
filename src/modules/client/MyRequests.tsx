@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import ClientGPSTracking from './ClientGPSTracking';
 
 interface Request {
   id: string;
@@ -10,11 +11,13 @@ interface Request {
   status: string;
   created_at: string;
   notes: string;
+  is_home_service: boolean;
 }
 
 export function MyRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
+  const [trackingRequestId, setTrackingRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -31,6 +34,7 @@ export function MyRequests() {
         status,
         created_at,
         notes,
+        is_home_service,
         users!service_requests_professional_id_fkey(
           profiles(full_name)
         )
@@ -46,6 +50,7 @@ export function MyRequests() {
         status: r.status,
         created_at: r.created_at,
         notes: r.notes,
+        is_home_service: r.is_home_service || false,
       }));
       setRequests(formatted);
     }
@@ -109,6 +114,15 @@ export function MyRequests() {
     }
   };
 
+  if (trackingRequestId) {
+    return (
+      <ClientGPSTracking
+        serviceRequestId={trackingRequestId}
+        onClose={() => setTrackingRequestId(null)}
+      />
+    );
+  }
+
   return (
     <div className="p-4 pb-20">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Meus Chamados</h2>
@@ -146,6 +160,16 @@ export function MyRequests() {
                 {getStatusLabel(request.status)}
               </span>
             </div>
+
+            {request.is_home_service && (request.status === 'accepted' || request.status === 'in_progress') && (
+              <button
+                onClick={() => setTrackingRequestId(request.id)}
+                className="w-full mt-3 bg-teal-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-teal-600 transition flex items-center justify-center gap-2"
+              >
+                <MapPin size={18} />
+                Rastrear Profissional
+              </button>
+            )}
           </div>
         ))}
       </div>

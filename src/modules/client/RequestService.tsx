@@ -47,6 +47,8 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
 
     setLoading(true);
 
+    const isHomeService = serviceType === 'in_person';
+
     const { data: requestData, error: requestError } = await supabase
       .from('service_requests')
       .insert([{
@@ -55,6 +57,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         service_type: serviceType,
         notes: notes,
         status: 'pending',
+        is_home_service: isHomeService,
       }])
       .select()
       .single();
@@ -75,6 +78,28 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
             professional_id: professionalId,
             request_id: requestData.id,
           });
+      }
+
+      if (isHomeService && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            await supabase
+              .from('service_locations')
+              .insert({
+                service_request_id: requestData.id,
+                user_id: user.id,
+                user_type: 'client',
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy,
+                timestamp: new Date().toISOString(),
+                is_active: true,
+              });
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+          }
+        );
       }
     }
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Briefcase, Bell, MessageCircle, Calendar } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Bell, MessageCircle, Calendar, MapPin } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BottomNav } from '../../components/BottomNav';
 import { ProfessionalDashboard } from './ProfessionalDashboard';
@@ -7,6 +7,7 @@ import { ServiceManagement } from './ServiceManagement';
 import { ServiceRequests } from './ServiceRequests';
 import Messages from './Messages';
 import { Schedule } from './Schedule';
+import GPSTracking from './GPSTracking';
 
 export function ProfessionalModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -16,6 +17,7 @@ export function ProfessionalModule() {
     { icon: Briefcase, label: 'Serviços', value: 'services' },
     { icon: Bell, label: 'Chamados', value: 'requests' },
     { icon: Calendar, label: 'Agenda', value: 'schedule' },
+    { icon: MapPin, label: 'GPS', value: 'gps' },
     { icon: MessageCircle, label: 'Conversas', value: 'conversations' },
   ];
 
@@ -29,6 +31,8 @@ export function ProfessionalModule() {
         return <ServiceRequests />;
       case 'schedule':
         return <Schedule />;
+      case 'gps':
+        return <GPSTracking />;
       case 'conversations':
         return <Messages />;
       default:
