@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Briefcase, Trash2 } from 'lucide-react';
+import { Plus, Briefcase, Trash2, Edit } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -13,6 +13,7 @@ export function ServiceManagement() {
   const { user } = useAuth();
   const [services, setServices] = useState<Service[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [professionalId, setProfessionalId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     serviceName: '',
@@ -62,17 +63,37 @@ export function ServiceManagement() {
 
     if (!professionalId) return;
 
-    await supabase
-      .from('professional_services')
-      .insert([{
-        professional_id: professionalId,
-        service_name: formData.serviceName,
-        description: formData.description,
-      }]);
+    if (editingId) {
+      await supabase
+        .from('professional_services')
+        .update({
+          service_name: formData.serviceName,
+          description: formData.description,
+        })
+        .eq('id', editingId);
+    } else {
+      await supabase
+        .from('professional_services')
+        .insert([{
+          professional_id: professionalId,
+          service_name: formData.serviceName,
+          description: formData.description,
+        }]);
+    }
 
     setFormData({ serviceName: '', description: '' });
+    setEditingId(null);
     setShowForm(false);
     loadServices();
+  };
+
+  const handleEdit = (service: Service) => {
+    setFormData({
+      serviceName: service.service_name,
+      description: service.description,
+    });
+    setEditingId(service.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -90,9 +111,15 @@ export function ServiceManagement() {
     return (
       <div className="p-4 pb-20">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Novo Serviço</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {editingId ? 'Editar Serviço' : 'Novo Serviço'}
+          </h2>
           <button
-            onClick={() => setShowForm(false)}
+            onClick={() => {
+              setShowForm(false);
+              setEditingId(null);
+              setFormData({ serviceName: '', description: '' });
+            }}
             className="text-gray-600 hover:text-gray-800"
           >
             Voltar
@@ -131,7 +158,7 @@ export function ServiceManagement() {
             type="submit"
             className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
           >
-            Cadastrar Serviço
+            {editingId ? 'Salvar Alterações' : 'Cadastrar Serviço'}
           </button>
         </form>
       </div>
@@ -167,12 +194,20 @@ export function ServiceManagement() {
                   <p className="text-sm text-gray-600 mt-1">{service.description}</p>
                 )}
               </div>
-              <button
-                onClick={() => handleDelete(service.id)}
-                className="p-2 hover:bg-red-50 rounded-lg transition"
-              >
-                <Trash2 className="w-4 h-4 text-red-500" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEdit(service)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
+                  <Edit className="w-4 h-4 text-gray-600" />
+                </button>
+                <button
+                  onClick={() => handleDelete(service.id)}
+                  className="p-2 hover:bg-red-50 rounded-lg transition"
+                >
+                  <Trash2 className="w-4 h-4 text-red-500" />
+                </button>
+              </div>
             </div>
           </div>
         ))}

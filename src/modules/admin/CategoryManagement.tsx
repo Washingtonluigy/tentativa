@@ -14,6 +14,7 @@ export function CategoryManagement() {
   const { user } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -37,24 +38,49 @@ export function CategoryManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { data, error } = await supabase
-      .from('categories')
-      .insert([{
-        name: formData.name,
-        description: formData.description,
-        created_by: user?.id
-      }])
-      .select();
+    if (editingId) {
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: formData.name,
+          description: formData.description,
+        })
+        .eq('id', editingId);
 
-    if (error) {
-      console.error('Erro ao criar categoria:', error);
-      alert('Erro ao criar categoria: ' + error.message);
-      return;
+      if (error) {
+        console.error('Erro ao atualizar categoria:', error);
+        alert('Erro ao atualizar categoria: ' + error.message);
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from('categories')
+        .insert([{
+          name: formData.name,
+          description: formData.description,
+          created_by: user?.id
+        }]);
+
+      if (error) {
+        console.error('Erro ao criar categoria:', error);
+        alert('Erro ao criar categoria: ' + error.message);
+        return;
+      }
     }
 
     setFormData({ name: '', description: '' });
+    setEditingId(null);
     setShowForm(false);
     loadCategories();
+  };
+
+  const handleEdit = (category: Category) => {
+    setFormData({
+      name: category.name,
+      description: category.description,
+    });
+    setEditingId(category.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -72,9 +98,15 @@ export function CategoryManagement() {
     return (
       <div className="p-4 pb-20">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Nova Categoria</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {editingId ? 'Editar Categoria' : 'Nova Categoria'}
+          </h2>
           <button
-            onClick={() => setShowForm(false)}
+            onClick={() => {
+              setShowForm(false);
+              setEditingId(null);
+              setFormData({ name: '', description: '' });
+            }}
             className="text-gray-600 hover:text-gray-800"
           >
             Voltar
@@ -113,7 +145,7 @@ export function CategoryManagement() {
             type="submit"
             className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
           >
-            Criar Categoria
+            {editingId ? 'Salvar Alterações' : 'Criar Categoria'}
           </button>
         </form>
       </div>
@@ -150,7 +182,10 @@ export function CategoryManagement() {
                 )}
               </div>
               <div className="flex gap-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <button
+                  onClick={() => handleEdit(category)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
                   <Edit className="w-4 h-4 text-gray-600" />
                 </button>
                 <button

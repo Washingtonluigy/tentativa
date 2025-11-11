@@ -15,6 +15,7 @@ export function PlansManagement() {
   const { user } = useAuth();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -40,26 +41,55 @@ export function PlansManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { data, error } = await supabase
-      .from('plans')
-      .insert([{
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        duration_type: formData.durationType,
-        created_by: user?.id
-      }])
-      .select();
+    if (editingId) {
+      const { error } = await supabase
+        .from('plans')
+        .update({
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          duration_type: formData.durationType,
+        })
+        .eq('id', editingId);
 
-    if (error) {
-      console.error('Erro ao criar plano:', error);
-      alert('Erro ao criar plano: ' + error.message);
-      return;
+      if (error) {
+        console.error('Erro ao atualizar plano:', error);
+        alert('Erro ao atualizar plano: ' + error.message);
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from('plans')
+        .insert([{
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          duration_type: formData.durationType,
+          created_by: user?.id
+        }]);
+
+      if (error) {
+        console.error('Erro ao criar plano:', error);
+        alert('Erro ao criar plano: ' + error.message);
+        return;
+      }
     }
 
     setFormData({ name: '', description: '', price: '', durationType: '' });
+    setEditingId(null);
     setShowForm(false);
     loadPlans();
+  };
+
+  const handleEdit = (plan: Plan) => {
+    setFormData({
+      name: plan.name,
+      description: plan.description,
+      price: plan.price.toString(),
+      durationType: plan.duration_type,
+    });
+    setEditingId(plan.id);
+    setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -77,9 +107,15 @@ export function PlansManagement() {
     return (
       <div className="p-4 pb-20">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Novo Plano</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {editingId ? 'Editar Plano' : 'Novo Plano'}
+          </h2>
           <button
-            onClick={() => setShowForm(false)}
+            onClick={() => {
+              setShowForm(false);
+              setEditingId(null);
+              setFormData({ name: '', description: '', price: '', durationType: '' });
+            }}
             className="text-gray-600 hover:text-gray-800"
           >
             Voltar
@@ -151,7 +187,7 @@ export function PlansManagement() {
             type="submit"
             className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
           >
-            Criar Plano
+            {editingId ? 'Salvar Alterações' : 'Criar Plano'}
           </button>
         </form>
       </div>
@@ -196,7 +232,10 @@ export function PlansManagement() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <button
+                  onClick={() => handleEdit(plan)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
                   <Edit className="w-4 h-4 text-gray-600" />
                 </button>
                 <button
