@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Briefcase, Bell, MessageCircle, History } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Bell, MessageCircle, Calendar } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BottomNav } from '../../components/BottomNav';
 import { ProfessionalDashboard } from './ProfessionalDashboard';
 import { ServiceManagement } from './ServiceManagement';
 import { ServiceRequests } from './ServiceRequests';
 import Messages from './Messages';
+import { Schedule } from './Schedule';
 
 export function ProfessionalModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -14,8 +15,8 @@ export function ProfessionalModule() {
     { icon: LayoutDashboard, label: 'Dashboard', value: 'dashboard' },
     { icon: Briefcase, label: 'Serviços', value: 'services' },
     { icon: Bell, label: 'Chamados', value: 'requests' },
+    { icon: Calendar, label: 'Agenda', value: 'schedule' },
     { icon: MessageCircle, label: 'Conversas', value: 'conversations' },
-    { icon: History, label: 'Histórico', value: 'history' },
   ];
 
   const renderContent = () => {
@@ -26,10 +27,10 @@ export function ProfessionalModule() {
         return <ServiceManagement />;
       case 'requests':
         return <ServiceRequests />;
+      case 'schedule':
+        return <Schedule />;
       case 'conversations':
         return <Messages />;
-      case 'history':
-        return <div className="p-4 pb-20"><h2 className="text-2xl font-bold">Histórico</h2><p className="text-gray-600 mt-4">Em desenvolvimento</p></div>;
       default:
         return <ProfessionalDashboard />;
     }

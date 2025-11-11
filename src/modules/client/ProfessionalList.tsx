@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Star, ArrowLeft } from 'lucide-react';
+import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Category {
@@ -17,6 +17,8 @@ interface Professional {
   experience_years: number;
   category_name: string;
   photo_url: string;
+  availability_status: 'available' | 'busy' | 'no_schedule';
+  next_available?: string;
 }
 
 interface ProfessionalListProps {
@@ -50,6 +52,45 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     }
   };
 
+  const checkAvailability = async (professionalId: string) => {
+    const today = new Date();
+    const todayDayOfWeek = today.getDay();
+    const currentTime = today.toTimeString().slice(0, 5);
+
+    const { data: availabilityData } = await supabase
+      .from('professional_availability')
+      .select('*')
+      .eq('professional_id', professionalId)
+      .eq('is_active', true);
+
+    if (!availabilityData || availabilityData.length === 0) {
+      return { status: 'no_schedule' as const };
+    }
+
+    const { data: appointments } = await supabase
+      .from('scheduled_appointments')
+      .select('*')
+      .eq('professional_id', professionalId)
+      .eq('status', 'in_progress')
+      .maybeSingle();
+
+    if (appointments) {
+      return { status: 'busy' as const };
+    }
+
+    const todayAvailability = availabilityData.find(
+      (slot: any) => slot.day_of_week === todayDayOfWeek &&
+      slot.start_time <= currentTime &&
+      slot.end_time >= currentTime
+    );
+
+    if (todayAvailability) {
+      return { status: 'available' as const };
+    }
+
+    return { status: 'no_schedule' as const };
+  };
+
   const loadProfessionals = async (categoryId: string) => {
     const { data: profData, error } = await supabase
       .from('professionals')
@@ -77,6 +118,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           .eq('id', p.category_id)
           .maybeSingle();
 
+        const availabilityStatus = await checkAvailability(p.id);
+
         return {
           id: p.id,
           user_id: p.user_id,
@@ -85,6 +128,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           experience_years: p.experience_years || 0,
           category_name: categoryData?.name || '',
           photo_url: profileData?.photo_url || '',
+          availability_status: availabilityStatus.status,
         };
       })
     );
@@ -153,12 +197,46 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                 <p className="text-sm text-gray-600 mb-3">{professional.description}</p>
               )}
 
-              <button
-                onClick={() => onRequestService(professional.user_id, professional.full_name)}
-                className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
-              >
-                Abrir Chamado
-              </button>
+              {professional.availability_status === 'available' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
+                    <Clock className="w-4 h-4" />
+                    <span>Disponível agora</span>
+                  </div>
+                  <button
+                    onClick={() => onRequestService(professional.user_id, professional.full_name)}
+                    className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
+                  >
+                    Abrir Chamado
+                  </button>
+                </div>
+              ) : professional.availability_status === 'busy' ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-orange-600 text-sm font-medium bg-orange-50 px-3 py-2 rounded-lg">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Em atendimento - Aguarde</span>
+                  </div>
+                  <button
+                    disabled
+                    className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Indisponível
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-red-600 text-sm font-medium bg-red-50 px-3 py-2 rounded-lg">
+                    <Calendar className="w-4 h-4" />
+                    <span>Agenda lotada - Aguarde</span>
+                  </div>
+                  <button
+                    disabled
+                    className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                  >
+                    Indisponível
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

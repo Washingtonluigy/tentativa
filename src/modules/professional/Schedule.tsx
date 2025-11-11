@@ -1,0 +1,305 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
+import { Calendar, Clock, Plus, Trash2, Save } from 'lucide-react';
+
+interface AvailabilitySlot {
+  id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_active: boolean;
+}
+
+const DAYS_OF_WEEK = [
+  { value: 0, label: 'Domingo' },
+  { value: 1, label: 'Segunda-feira' },
+  { value: 2, label: 'Terça-feira' },
+  { value: 3, label: 'Quarta-feira' },
+  { value: 4, label: 'Quinta-feira' },
+  { value: 5, label: 'Sexta-feira' },
+  { value: 6, label: 'Sábado' }
+];
+
+export function Schedule() {
+  const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [professionalId, setProfessionalId] = useState<string>('');
+  const [newSlot, setNewSlot] = useState({
+    day_of_week: 1,
+    start_time: '08:00',
+    end_time: '17:00'
+  });
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  useEffect(() => {
+    loadProfessionalData();
+  }, []);
+
+  const loadProfessionalData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profData } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profData) {
+        setProfessionalId(profData.id);
+        loadAvailability(profData.id);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err);
+    }
+  };
+
+  const loadAvailability = async (profId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('professional_availability')
+        .select('*')
+        .eq('professional_id', profId)
+        .order('day_of_week')
+        .order('start_time');
+
+      if (error) throw error;
+      setAvailability(data || []);
+    } catch (err) {
+      console.error('Erro ao carregar disponibilidade:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSlot = async () => {
+    if (!professionalId) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('professional_availability')
+        .insert([{
+          professional_id: professionalId,
+          day_of_week: newSlot.day_of_week,
+          start_time: newSlot.start_time,
+          end_time: newSlot.end_time,
+          is_active: true
+        }]);
+
+      if (error) throw error;
+
+      await loadAvailability(professionalId);
+      setShowAddForm(false);
+      setNewSlot({
+        day_of_week: 1,
+        start_time: '08:00',
+        end_time: '17:00'
+      });
+    } catch (err) {
+      console.error('Erro ao adicionar horário:', err);
+      alert('Erro ao adicionar horário. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteSlot = async (id: string) => {
+    if (!confirm('Deseja realmente remover este horário?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('professional_availability')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      await loadAvailability(professionalId);
+    } catch (err) {
+      console.error('Erro ao remover horário:', err);
+      alert('Erro ao remover horário. Tente novamente.');
+    }
+  };
+
+  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('professional_availability')
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      await loadAvailability(professionalId);
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+    }
+  };
+
+  const groupedAvailability = availability.reduce((acc, slot) => {
+    if (!acc[slot.day_of_week]) {
+      acc[slot.day_of_week] = [];
+    }
+    acc[slot.day_of_week].push(slot);
+    return acc;
+  }, {} as Record<number, AvailabilitySlot[]>);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 pb-20">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Minha Agenda</h2>
+          <p className="text-gray-600 text-sm mt-1">Gerencie seus horários disponíveis para atendimento</p>
+        </div>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-600 transition flex items-center gap-2"
+        >
+          <Plus className="w-5 h-5" />
+          Adicionar
+        </button>
+      </div>
+
+      {showAddForm && (
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+          <h3 className="font-semibold text-gray-800 mb-4">Novo Horário</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Dia da Semana
+              </label>
+              <select
+                value={newSlot.day_of_week}
+                onChange={(e) => setNewSlot({ ...newSlot, day_of_week: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+              >
+                {DAYS_OF_WEEK.map((day) => (
+                  <option key={day.value} value={day.value}>
+                    {day.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Horário Início
+                </label>
+                <input
+                  type="time"
+                  value={newSlot.start_time}
+                  onChange={(e) => setNewSlot({ ...newSlot, start_time: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Horário Fim
+                </label>
+                <input
+                  type="time"
+                  value={newSlot.end_time}
+                  onChange={(e) => setNewSlot({ ...newSlot, end_time: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddSlot}
+                disabled={saving}
+                className="flex-1 bg-teal-500 text-white py-2 rounded-lg font-semibold hover:bg-teal-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? 'Salvando...' : 'Salvar'}
+              </button>
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {availability.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+          <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Nenhum horário cadastrado</h3>
+          <p className="text-gray-600 mb-4">
+            Adicione seus horários disponíveis para que os clientes possam solicitar atendimento
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {DAYS_OF_WEEK.map((day) => {
+            const daySlots = groupedAvailability[day.value];
+            if (!daySlots || daySlots.length === 0) return null;
+
+            return (
+              <div key={day.value} className="bg-white rounded-xl shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="w-5 h-5 text-teal-500" />
+                  <h3 className="font-semibold text-gray-800">{day.label}</h3>
+                </div>
+                <div className="space-y-2">
+                  {daySlots.map((slot) => (
+                    <div
+                      key={slot.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border-2 transition ${
+                        slot.is_active
+                          ? 'border-teal-200 bg-teal-50'
+                          : 'border-gray-200 bg-gray-50 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-gray-600" />
+                        <span className="font-medium text-gray-800">
+                          {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
+                        </span>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          slot.is_active
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {slot.is_active ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleToggleActive(slot.id, slot.is_active)}
+                          className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+                        >
+                          {slot.is_active ? 'Desativar' : 'Ativar'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSlot(slot.id)}
+                          className="p-2 hover:bg-red-50 rounded-lg transition"
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
