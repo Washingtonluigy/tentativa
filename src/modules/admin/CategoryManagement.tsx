@@ -7,6 +7,7 @@ interface Category {
   id: string;
   name: string;
   description: string;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -18,6 +19,7 @@ export function CategoryManagement() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    imageUrl: '',
   });
 
   useEffect(() => {
@@ -44,6 +46,7 @@ export function CategoryManagement() {
         .update({
           name: formData.name,
           description: formData.description,
+          image_url: formData.imageUrl || null,
         })
         .eq('id', editingId);
 
@@ -58,6 +61,7 @@ export function CategoryManagement() {
         .insert([{
           name: formData.name,
           description: formData.description,
+          image_url: formData.imageUrl || null,
           created_by: user?.id
         }]);
 
@@ -68,7 +72,7 @@ export function CategoryManagement() {
       }
     }
 
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', imageUrl: '' });
     setEditingId(null);
     setShowForm(false);
     loadCategories();
@@ -78,6 +82,7 @@ export function CategoryManagement() {
     setFormData({
       name: category.name,
       description: category.description,
+      imageUrl: category.image_url || '',
     });
     setEditingId(category.id);
     setShowForm(true);
@@ -105,7 +110,7 @@ export function CategoryManagement() {
             onClick={() => {
               setShowForm(false);
               setEditingId(null);
-              setFormData({ name: '', description: '' });
+              setFormData({ name: '', description: '', imageUrl: '' });
             }}
             className="text-gray-600 hover:text-gray-800"
           >
@@ -139,6 +144,22 @@ export function CategoryManagement() {
               rows={4}
               placeholder="Descreva o tipo de profissional desta categoria"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              URL da Imagem
+            </label>
+            <input
+              type="url"
+              value={formData.imageUrl}
+              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+              placeholder="https://exemplo.com/imagem.jpg"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Cole a URL de uma imagem do Pexels, Unsplash ou outro site
+            </p>
           </div>
 
           <button

@@ -6,6 +6,7 @@ interface Category {
   id: string;
   name: string;
   description: string;
+  image_url: string | null;
 }
 
 interface Professional {
@@ -205,7 +206,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             <div
               className="absolute inset-0 bg-cover bg-center"
               style={{
-                backgroundImage: `url(${getCategoryImage(category.name)})`,
+                backgroundImage: `url(${category.image_url || getCategoryImage(category.name)})`,
               }}
             >
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent group-hover:from-black/60 transition-all duration-300"></div>
