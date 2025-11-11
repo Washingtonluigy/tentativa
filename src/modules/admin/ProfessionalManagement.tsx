@@ -37,6 +37,7 @@ export function ProfessionalManagement() {
     experienceYears: '',
     references: '',
     description: '',
+    minimumPrice: '',
   });
 
   useEffect(() => {
@@ -171,6 +172,7 @@ export function ProfessionalManagement() {
           experience_years: parseInt(formData.experienceYears),
           professional_references: formData.references,
           description: formData.description,
+          minimum_price: parseFloat(formData.minimumPrice) || 0,
         })
         .eq('id', editingId);
     } else {
@@ -203,6 +205,7 @@ export function ProfessionalManagement() {
           experience_years: parseInt(formData.experienceYears),
           professional_references: formData.references,
           description: formData.description,
+          minimum_price: parseFloat(formData.minimumPrice) || 0,
           status: 'active'
         }]);
     }
@@ -216,6 +219,7 @@ export function ProfessionalManagement() {
       experienceYears: '',
       references: '',
       description: '',
+      minimumPrice: '',
     });
     setPhotoFile(null);
     setPhotoPreview('');
@@ -232,7 +236,7 @@ export function ProfessionalManagement() {
       .maybeSingle();
     const { data: profData } = await supabase
       .from('professionals')
-      .select('professional_references, description')
+      .select('professional_references, description, minimum_price')
       .eq('id', professional.id)
       .maybeSingle();
 
@@ -245,6 +249,7 @@ export function ProfessionalManagement() {
       experienceYears: professional.experience_years.toString(),
       references: profData?.professional_references || '',
       description: profData?.description || '',
+      minimumPrice: profData?.minimum_price?.toString() || '0',
     });
     setPhotoPreview(profileData?.photo_url || '');
     setEditingId(professional.id);
@@ -287,6 +292,7 @@ export function ProfessionalManagement() {
                 experienceYears: '',
                 references: '',
                 description: '',
+                minimumPrice: '',
               });
               setPhotoFile(null);
               setPhotoPreview('');
@@ -429,6 +435,25 @@ export function ProfessionalManagement() {
               value={formData.experienceYears}
               onChange={(e) => setFormData({ ...formData, experienceYears: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Valor Mínimo (R$)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              O profissional não poderá cobrar menos que este valor pelos seus serviços
+            </p>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={formData.minimumPrice}
+              onChange={(e) => setFormData({ ...formData, minimumPrice: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+              placeholder="0.00"
               required
             />
           </div>
