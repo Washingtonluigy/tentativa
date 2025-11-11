@@ -124,31 +124,33 @@ export function MyRequests() {
   }
 
   return (
-    <div className="p-4 pb-20">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Meus Chamados</h2>
+    <div className="p-3 sm:p-4 pb-20">
+      <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Meus Chamados</h2>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {requests.map((request) => (
           <div
             key={request.id}
-            className={`rounded-xl shadow-sm p-4 border-2 ${getStatusColor(request.status)}`}
+            className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 border-2 ${getStatusColor(request.status)}`}
           >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-gray-800">{request.professional_name}</h3>
-                <p className="text-sm text-gray-600 capitalize">{getServiceTypeLabel(request.service_type)}</p>
+            <div className="flex items-start justify-between mb-2 sm:mb-3 gap-2">
+              <div className="min-w-0 flex-1">
+                <h3 className="font-semibold text-sm sm:text-base text-gray-800 truncate">{request.professional_name}</h3>
+                <p className="text-xs sm:text-sm text-gray-600 capitalize truncate">{getServiceTypeLabel(request.service_type)}</p>
               </div>
-              {getStatusIcon(request.status)}
+              <div className="flex-shrink-0">
+                {getStatusIcon(request.status)}
+              </div>
             </div>
 
             {request.notes && (
-              <p className="text-sm text-gray-600 mb-3 bg-white rounded-lg p-2">
+              <p className="text-xs sm:text-sm text-gray-600 mb-2 sm:mb-3 bg-white rounded-lg p-2 line-clamp-2">
                 {request.notes}
               </p>
             )}
 
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-xs text-gray-500 truncate">
                 {new Date(request.created_at).toLocaleDateString('pt-BR', {
                   day: '2-digit',
                   month: 'short',
@@ -156,7 +158,7 @@ export function MyRequests() {
                   minute: '2-digit',
                 })}
               </span>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">
                 {getStatusLabel(request.status)}
               </span>
             </div>
@@ -164,9 +166,9 @@ export function MyRequests() {
             {request.is_home_service && (request.status === 'accepted' || request.status === 'in_progress') && (
               <button
                 onClick={() => setTrackingRequestId(request.id)}
-                className="w-full mt-3 bg-teal-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-teal-600 transition flex items-center justify-center gap-2"
+                className="w-full mt-2 sm:mt-3 bg-teal-500 text-white py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-teal-600 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
               >
-                <MapPin size={18} />
+                <MapPin size={16} className="sm:w-[18px] sm:h-[18px]" />
                 Rastrear Profissional
               </button>
             )}
