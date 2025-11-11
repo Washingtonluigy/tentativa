@@ -13,12 +13,15 @@ interface Professional {
   email: string;
   full_name: string;
   category_name: string;
+  category_id: string;
   experience_years: number;
   status: string;
+  phone: string;
 }
 
 export function ProfessionalManagement() {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -55,7 +58,7 @@ export function ProfessionalManagement() {
 
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, phone')
           .eq('user_id', p.user_id)
           .maybeSingle();
 
@@ -70,7 +73,9 @@ export function ProfessionalManagement() {
           user_id: p.user_id,
           email: userData?.email || 'N/A',
           full_name: profileData?.full_name || 'N/A',
+          phone: profileData?.phone || '',
           category_name: categoryData?.name || 'Sem categoria',
+          category_id: p.category_id,
           experience_years: p.experience_years,
           status: p.status,
         };
@@ -94,36 +99,59 @@ export function ProfessionalManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .insert([{
-        email: formData.email,
-        password_hash: formData.password,
-        role: 'professional'
-      }])
-      .select()
-      .single();
+    if (editingId) {
+      const professional = professionals.find(p => p.id === editingId);
+      if (!professional) return;
 
-    if (userError || !userData) return;
+      await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.fullName,
+          phone: formData.phone
+        })
+        .eq('user_id', professional.user_id);
 
-    await supabase
-      .from('profiles')
-      .insert([{
-        user_id: userData.id,
-        full_name: formData.fullName,
-        phone: formData.phone
-      }]);
+      await supabase
+        .from('professionals')
+        .update({
+          category_id: formData.categoryId,
+          experience_years: parseInt(formData.experienceYears),
+          professional_references: formData.references,
+          description: formData.description,
+        })
+        .eq('id', editingId);
+    } else {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .insert([{
+          email: formData.email,
+          password_hash: formData.password,
+          role: 'professional'
+        }])
+        .select()
+        .single();
 
-    await supabase
-      .from('professionals')
-      .insert([{
-        user_id: userData.id,
-        category_id: formData.categoryId,
-        experience_years: parseInt(formData.experienceYears),
-        professional_references: formData.references,
-        description: formData.description,
-        status: 'active'
-      }]);
+      if (userError || !userData) return;
+
+      await supabase
+        .from('profiles')
+        .insert([{
+          user_id: userData.id,
+          full_name: formData.fullName,
+          phone: formData.phone
+        }]);
+
+      await supabase
+        .from('professionals')
+        .insert([{
+          user_id: userData.id,
+          category_id: formData.categoryId,
+          experience_years: parseInt(formData.experienceYears),
+          professional_references: formData.references,
+          description: formData.description,
+          status: 'active'
+        }]);
+    }
 
     setFormData({
       fullName: '',
@@ -135,8 +163,41 @@ export function ProfessionalManagement() {
       references: '',
       description: '',
     });
+    setEditingId(null);
     setShowForm(false);
     loadProfessionals();
+  };
+
+  const handleEdit = async (professional: Professional) => {
+    const { data: profData } = await supabase
+      .from('professionals')
+      .select('professional_references, description')
+      .eq('id', professional.id)
+      .maybeSingle();
+
+    setFormData({
+      fullName: professional.full_name,
+      email: professional.email,
+      password: '',
+      phone: professional.phone,
+      categoryId: professional.category_id,
+      experienceYears: professional.experience_years.toString(),
+      references: profData?.professional_references || '',
+      description: profData?.description || '',
+    });
+    setEditingId(professional.id);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Deseja realmente excluir este profissional?')) {
+      await supabase
+        .from('professionals')
+        .delete()
+        .eq('id', id);
+
+      loadProfessionals();
+    }
   };
 
   const filteredProfessionals = professionals.filter(p =>
@@ -148,9 +209,24 @@ export function ProfessionalManagement() {
     return (
       <div className="p-4 pb-20">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">Cadastrar Profissional</h2>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {editingId ? 'Editar Profissional' : 'Cadastrar Profissional'}
+          </h2>
           <button
-            onClick={() => setShowForm(false)}
+            onClick={() => {
+              setShowForm(false);
+              setEditingId(null);
+              setFormData({
+                fullName: '',
+                email: '',
+                password: '',
+                phone: '',
+                categoryId: '',
+                experienceYears: '',
+                references: '',
+                description: '',
+              });
+            }}
             className="text-gray-600 hover:text-gray-800"
           >
             Voltar
@@ -171,31 +247,35 @@ export function ProfessionalManagement() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-              required
-            />
-          </div>
+          {!editingId && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Senha
-            </label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-              required
-            />
-          </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Senha
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -270,7 +350,7 @@ export function ProfessionalManagement() {
             type="submit"
             className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition"
           >
-            Cadastrar Profissional
+            {editingId ? 'Salvar Alterações' : 'Cadastrar Profissional'}
           </button>
         </form>
       </div>
@@ -327,10 +407,16 @@ export function ProfessionalManagement() {
                 <span>{professional.experience_years} anos</span>
               </div>
               <div className="flex gap-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                <button
+                  onClick={() => handleEdit(professional)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
                   <Edit className="w-4 h-4 text-gray-600" />
                 </button>
-                <button className="p-2 hover:bg-red-50 rounded-lg transition">
+                <button
+                  onClick={() => handleDelete(professional.id)}
+                  className="p-2 hover:bg-red-50 rounded-lg transition"
+                >
                   <Trash2 className="w-4 h-4 text-red-500" />
                 </button>
               </div>
