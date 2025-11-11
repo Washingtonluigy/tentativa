@@ -37,13 +37,20 @@ export function CategoryManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    await supabase
+    const { data, error } = await supabase
       .from('categories')
       .insert([{
         name: formData.name,
         description: formData.description,
         created_by: user?.id
-      }]);
+      }])
+      .select();
+
+    if (error) {
+      console.error('Erro ao criar categoria:', error);
+      alert('Erro ao criar categoria: ' + error.message);
+      return;
+    }
 
     setFormData({ name: '', description: '' });
     setShowForm(false);

@@ -40,7 +40,7 @@ export function PlansManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    await supabase
+    const { data, error } = await supabase
       .from('plans')
       .insert([{
         name: formData.name,
@@ -48,7 +48,14 @@ export function PlansManagement() {
         price: parseFloat(formData.price),
         duration_type: formData.durationType,
         created_by: user?.id
-      }]);
+      }])
+      .select();
+
+    if (error) {
+      console.error('Erro ao criar plano:', error);
+      alert('Erro ao criar plano: ' + error.message);
+      return;
+    }
 
     setFormData({ name: '', description: '', price: '', durationType: '' });
     setShowForm(false);
