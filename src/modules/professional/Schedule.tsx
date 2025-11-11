@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Calendar, Clock, Plus, Trash2, Save } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface AvailabilitySlot {
   id: string;
@@ -21,6 +22,7 @@ const DAYS_OF_WEEK = [
 ];
 
 export function Schedule() {
+  const { user } = useAuth();
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,39 +36,41 @@ export function Schedule() {
 
   useEffect(() => {
     loadProfessionalData();
-  }, []);
+  }, [user]);
 
   const loadProfessionalData = async () => {
     try {
-      const userDataStr = localStorage.getItem('user');
-      if (!userDataStr) {
+      if (!user) {
+        console.log('Schedule: Nenhum usuário encontrado');
         setLoading(false);
         return;
       }
 
-      const userData = JSON.parse(userDataStr);
-      const userId = userData.id;
+      console.log('Schedule: Buscando profissional para user_id:', user.id);
 
       const { data: profData, error } = await supabase
         .from('professionals')
         .select('id')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (error) {
-        console.error('Erro ao buscar profissional:', error);
+        console.error('Schedule: Erro ao buscar profissional:', error);
         setLoading(false);
         return;
       }
+
+      console.log('Schedule: Profissional encontrado:', profData);
 
       if (profData) {
         setProfessionalId(profData.id);
         await loadAvailability(profData.id);
       } else {
+        console.log('Schedule: Nenhum registro de profissional encontrado para este usuário');
         setLoading(false);
       }
     } catch (err) {
-      console.error('Erro ao carregar dados:', err);
+      console.error('Schedule: Erro ao carregar dados:', err);
       setLoading(false);
     }
   };
