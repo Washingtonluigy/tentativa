@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Link as LinkIcon, Save, Search, CheckCircle, XCircle } from 'lucide-react';
+import { Link as LinkIcon, Save, Search, MessageSquare, Video, MapPin, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface ServiceWithProfessional {
@@ -9,7 +9,9 @@ interface ServiceWithProfessional {
   price_message: number | null;
   price_video: number | null;
   price_local: number | null;
-  payment_link: string | null;
+  payment_link_message: string | null;
+  payment_link_video: string | null;
+  payment_link_local: string | null;
   is_active: boolean;
   professional_id: string;
   professional: {
@@ -24,11 +26,21 @@ interface ServiceWithProfessional {
   };
 }
 
+interface ServiceRow {
+  serviceId: string;
+  serviceName: string;
+  professionalName: string;
+  professionalEmail: string;
+  serviceType: 'message' | 'video' | 'local';
+  price: number;
+  paymentLink: string | null;
+}
+
 export function ServicePaymentManagement() {
   const [services, setServices] = useState<ServiceWithProfessional[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingService, setEditingService] = useState<string | null>(null);
+  const [editingRow, setEditingRow] = useState<string | null>(null);
   const [paymentLink, setPaymentLink] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -48,7 +60,9 @@ export function ServicePaymentManagement() {
           price_message,
           price_video,
           price_local,
-          payment_link,
+          payment_link_message,
+          payment_link_video,
+          payment_link_local,
           is_active,
           professional_id,
           professionals!inner (
@@ -69,6 +83,9 @@ export function ServicePaymentManagement() {
 
       const formattedData = data?.map((service: any) => ({
         ...service,
+        payment_link_message: service.payment_link_message || null,
+        payment_link_video: service.payment_link_video || null,
+        payment_link_local: service.payment_link_local || null,
         professional: {
           id: service.professionals.id,
           user_id: service.professionals.user_id,
@@ -87,25 +104,79 @@ export function ServicePaymentManagement() {
     }
   };
 
-  const handleEditClick = (service: ServiceWithProfessional) => {
-    setEditingService(service.id);
-    setPaymentLink(service.payment_link || '');
+  const createServiceRows = (): ServiceRow[] => {
+    const rows: ServiceRow[] = [];
+
+    services.forEach(service => {
+      const professionalName = service.professional.users.profiles[0]?.full_name || 'Sem nome';
+      const professionalEmail = service.professional.users.email;
+
+      if (service.price_message) {
+        rows.push({
+          serviceId: service.id,
+          serviceName: service.name,
+          professionalName,
+          professionalEmail,
+          serviceType: 'message',
+          price: service.price_message,
+          paymentLink: service.payment_link_message
+        });
+      }
+
+      if (service.price_video) {
+        rows.push({
+          serviceId: service.id,
+          serviceName: service.name,
+          professionalName,
+          professionalEmail,
+          serviceType: 'video',
+          price: service.price_video,
+          paymentLink: service.payment_link_video
+        });
+      }
+
+      if (service.price_local) {
+        rows.push({
+          serviceId: service.id,
+          serviceName: service.name,
+          professionalName,
+          professionalEmail,
+          serviceType: 'local',
+          price: service.price_local,
+          paymentLink: service.payment_link_local
+        });
+      }
+    });
+
+    return rows;
   };
 
-  const handleSavePaymentLink = async (serviceId: string) => {
+  const handleEditClick = (row: ServiceRow) => {
+    const rowId = `${row.serviceId}-${row.serviceType}`;
+    setEditingRow(rowId);
+    setPaymentLink(row.paymentLink || '');
+  };
+
+  const handleSavePaymentLink = async (row: ServiceRow) => {
     setSaving(true);
     try {
+      const columnMap = {
+        message: 'payment_link_message',
+        video: 'payment_link_video',
+        local: 'payment_link_local'
+      };
+
+      const column = columnMap[row.serviceType];
+
       const { error } = await supabase
         .from('professional_services')
-        .update({ payment_link: paymentLink || null })
-        .eq('id', serviceId);
+        .update({ [column]: paymentLink || null })
+        .eq('id', row.serviceId);
 
       if (error) throw error;
 
-      setServices(services.map(s =>
-        s.id === serviceId ? { ...s, payment_link: paymentLink || null } : s
-      ));
-      setEditingService(null);
+      await loadServices();
+      setEditingRow(null);
       setPaymentLink('');
     } catch (error) {
       console.error('Error saving payment link:', error);
@@ -116,25 +187,44 @@ export function ServicePaymentManagement() {
   };
 
   const handleCancelEdit = () => {
-    setEditingService(null);
+    setEditingRow(null);
     setPaymentLink('');
   };
 
-  const getServicePrice = (service: ServiceWithProfessional) => {
-    const prices = [];
-    if (service.price_message) prices.push(`Mensagem: R$ ${service.price_message.toFixed(2)}`);
-    if (service.price_video) prices.push(`Vídeo: R$ ${service.price_video.toFixed(2)}`);
-    if (service.price_local) prices.push(`Presencial: R$ ${service.price_local.toFixed(2)}`);
-    return prices.length > 0 ? prices.join(' | ') : 'Sem preço definido';
+  const getServiceTypeLabel = (type: string) => {
+    switch (type) {
+      case 'message':
+        return 'Mensagem';
+      case 'video':
+        return 'Vídeo';
+      case 'local':
+        return 'Presencial';
+      default:
+        return type;
+    }
   };
 
-  const filteredServices = services.filter(service => {
-    const professionalName = service.professional.users.profiles[0]?.full_name || '';
+  const getServiceTypeIcon = (type: string) => {
+    switch (type) {
+      case 'message':
+        return <MessageSquare className="w-4 h-4" />;
+      case 'video':
+        return <Video className="w-4 h-4" />;
+      case 'local':
+        return <MapPin className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const serviceRows = createServiceRows();
+
+  const filteredRows = serviceRows.filter(row => {
     const searchLower = searchTerm.toLowerCase();
     return (
-      service.name.toLowerCase().includes(searchLower) ||
-      professionalName.toLowerCase().includes(searchLower) ||
-      service.professional.users.email.toLowerCase().includes(searchLower)
+      row.serviceName.toLowerCase().includes(searchLower) ||
+      row.professionalName.toLowerCase().includes(searchLower) ||
+      row.professionalEmail.toLowerCase().includes(searchLower)
     );
   });
 
@@ -147,12 +237,10 @@ export function ServicePaymentManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Valor de Serviços</h2>
-          <p className="text-gray-600 mt-1">Gerencie os links de pagamento dos serviços</p>
-        </div>
+    <div className="p-4 pb-20 space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900">Valor de Serviços</h2>
+        <p className="text-gray-600 mt-1">Gerencie os links de pagamento dos serviços</p>
       </div>
 
       <div className="relative">
@@ -171,134 +259,109 @@ export function ServicePaymentManagement() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                   Serviço
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                   Profissional
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                   Valores
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
                   Link de Pagamento
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Ações
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredServices.map((service) => (
-                <tr key={service.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="font-semibold text-gray-900">{service.name}</div>
-                      {service.description && (
-                        <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                          {service.description}
+              {filteredRows.map((row) => {
+                const rowId = `${row.serviceId}-${row.serviceType}`;
+                const isEditing = editingRow === rowId;
+
+                return (
+                  <tr key={rowId} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{row.serviceName}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">
+                          {row.professionalName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {row.professionalEmail}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 text-purple-600">
+                          {getServiceTypeIcon(row.serviceType)}
+                          <span className="text-sm font-medium">
+                            {getServiceTypeLabel(row.serviceType)}:
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-900">
+                          R$ {row.price.toFixed(2)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="url"
+                            value={paymentLink}
+                            onChange={(e) => setPaymentLink(e.target.value)}
+                            placeholder="https://..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                          />
+                          <button
+                            onClick={() => handleSavePaymentLink(row)}
+                            disabled={saving}
+                            className="inline-flex items-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm font-medium"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={handleCancelEdit}
+                            disabled={saving}
+                            className="p-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {row.paymentLink ? (
+                            <span className="text-sm text-gray-600 truncate max-w-xs flex-1">
+                              {row.paymentLink.length > 30
+                                ? row.paymentLink.substring(0, 30) + '...'
+                                : row.paymentLink}
+                            </span>
+                          ) : (
+                            <span className="text-sm text-gray-400 flex-1">Sem link</span>
+                          )}
+                          <button
+                            onClick={() => handleEditClick(row)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium whitespace-nowrap"
+                          >
+                            <LinkIcon className="w-4 h-4" />
+                            {row.paymentLink ? 'Editar' : 'Adicionar'} Link
+                          </button>
                         </div>
                       )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {service.professional.users.profiles[0]?.full_name || 'Sem nome'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {service.professional.users.email}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {getServicePrice(service)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingService === service.id ? (
-                      <input
-                        type="url"
-                        value={paymentLink}
-                        onChange={(e) => setPaymentLink(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {service.payment_link ? (
-                          <>
-                            <LinkIcon className="w-4 h-4 text-green-600 flex-shrink-0" />
-                            <a
-                              href={service.payment_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 truncate max-w-xs"
-                            >
-                              {service.payment_link}
-                            </a>
-                          </>
-                        ) : (
-                          <span className="text-sm text-gray-400">Sem link</span>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {service.payment_link ? (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                        <CheckCircle className="w-3 h-3" />
-                        Configurado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
-                        <XCircle className="w-3 h-3" />
-                        Pendente
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">
-                    {editingService === service.id ? (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleSavePaymentLink(service.id)}
-                          disabled={saving}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm font-medium"
-                        >
-                          <Save className="w-4 h-4" />
-                          Salvar
-                        </button>
-                        <button
-                          onClick={handleCancelEdit}
-                          disabled={saving}
-                          className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => handleEditClick(service)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
-                      >
-                        <DollarSign className="w-4 h-4" />
-                        {service.payment_link ? 'Editar' : 'Adicionar'} Link
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        {filteredServices.length === 0 && (
+        {filteredRows.length === 0 && (
           <div className="text-center py-12">
-            <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               {searchTerm ? 'Nenhum serviço encontrado' : 'Nenhum serviço cadastrado'}
             </h3>

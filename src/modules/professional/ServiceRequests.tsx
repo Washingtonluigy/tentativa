@@ -66,16 +66,34 @@ export function ServiceRequests() {
     try {
       let paymentLink = null;
 
-      // Buscar o link de pagamento do serviço profissional
-      if (professionalServiceId) {
+      // Buscar a solicitação para pegar o tipo de serviço
+      const { data: requestData } = await supabase
+        .from('service_requests')
+        .select('service_type')
+        .eq('id', requestId)
+        .maybeSingle();
+
+      // Buscar o link de pagamento do serviço profissional baseado no tipo
+      if (professionalServiceId && requestData) {
         const { data: serviceData } = await supabase
           .from('professional_services')
-          .select('payment_link')
+          .select('payment_link_message, payment_link_video, payment_link_local')
           .eq('id', professionalServiceId)
           .maybeSingle();
 
-        if (serviceData?.payment_link) {
-          paymentLink = serviceData.payment_link;
+        if (serviceData) {
+          // Selecionar o link correto baseado no tipo de serviço
+          switch (requestData.service_type) {
+            case 'message':
+              paymentLink = serviceData.payment_link_message;
+              break;
+            case 'video_call':
+              paymentLink = serviceData.payment_link_video;
+              break;
+            case 'in_person':
+              paymentLink = serviceData.payment_link_local;
+              break;
+          }
         }
       }
 
