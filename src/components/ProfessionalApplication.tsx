@@ -12,6 +12,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
     phone: '',
     email: '',
     profession: '',
+    registration_number: '',
     experience_years: '',
     state: '',
     city: '',
@@ -94,6 +95,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
           phone: formData.phone,
           email: formData.email,
           profession: formData.profession,
+          registration_number: formData.registration_number,
           experience_years: parseInt(formData.experience_years),
           state: formData.state,
           city: formData.city,
@@ -110,6 +112,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
         phone: '',
         email: '',
         profession: '',
+        registration_number: '',
         experience_years: '',
         state: '',
         city: '',
@@ -237,6 +240,21 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
                 required
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ex: Enfermeiro, Médico, Fisioterapeuta"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                Número de Registro *
+              </label>
+              <input
+                type="text"
+                name="registration_number"
+                value={formData.registration_number}
+                onChange={handleChange}
+                required
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Ex: COREN 123456, CRM 78910"
               />
             </div>
 

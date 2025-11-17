@@ -8,6 +8,7 @@ interface Application {
   phone: string;
   email: string;
   profession: string;
+  registration_number: string;
   experience_years: number;
   state: string;
   city: string;
@@ -179,6 +180,9 @@ export default function PendingApplications() {
                           <span className="text-gray-400 hidden sm:inline">•</span>
                           <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                           <span className="whitespace-nowrap">{app.experience_years} anos</span>
+                        </div>
+                        <div className="text-xs sm:text-sm text-blue-600 font-medium mt-1">
+                          Registro: {app.registration_number}
                         </div>
                       </div>
                       <div className="flex-shrink-0">
