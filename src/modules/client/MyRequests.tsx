@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, MapPin } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
@@ -12,15 +12,57 @@ interface Request {
   created_at: string;
   notes: string;
   is_home_service: boolean;
+  payment_link: string | null;
+  payment_completed: boolean;
 }
 
 export function MyRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [trackingRequestId, setTrackingRequestId] = useState<string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingPaymentRequest, setPendingPaymentRequest] = useState<Request | null>(null);
 
   useEffect(() => {
     loadRequests();
+
+    // Subscrever a mudanças nas solicitações para detectar aceitação
+    const subscription = supabase
+      .channel('service_requests_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'service_requests',
+          filter: `client_id=eq.${user?.id}`
+        },
+        (payload: any) => {
+          if (payload.new.status === 'accepted' && payload.new.payment_link && !payload.new.payment_completed) {
+            // Carregar a solicitação completa
+            loadRequests();
+            // Mostrar modal de pagamento
+            const request = {
+              id: payload.new.id,
+              payment_link: payload.new.payment_link,
+              payment_completed: payload.new.payment_completed,
+              status: payload.new.status,
+              service_type: payload.new.service_type,
+              professional_name: 'Profissional',
+              created_at: payload.new.created_at,
+              notes: payload.new.notes || '',
+              is_home_service: payload.new.is_home_service || false
+            };
+            setPendingPaymentRequest(request);
+            setShowPaymentModal(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [user]);
 
   const loadRequests = async () => {
@@ -35,6 +77,8 @@ export function MyRequests() {
         created_at,
         notes,
         is_home_service,
+        payment_link,
+        payment_completed,
         users!service_requests_professional_id_fkey(
           profiles(full_name)
         )
@@ -51,8 +95,20 @@ export function MyRequests() {
         created_at: r.created_at,
         notes: r.notes,
         is_home_service: r.is_home_service || false,
+        payment_link: r.payment_link,
+        payment_completed: r.payment_completed || false,
       }));
       setRequests(formatted);
+
+      // Verificar se há alguma solicitação aceita com pagamento pendente
+      const pendingPayment = formatted.find(
+        (r: Request) => r.status === 'accepted' && r.payment_link && !r.payment_completed
+      );
+
+      if (pendingPayment && !showPaymentModal) {
+        setPendingPaymentRequest(pendingPayment);
+        setShowPaymentModal(true);
+      }
     }
   };
 
@@ -114,6 +170,34 @@ export function MyRequests() {
     }
   };
 
+  const handlePayment = (request: Request) => {
+    if (request.payment_link) {
+      // Abrir link de pagamento em nova aba
+      window.open(request.payment_link, '_blank');
+    }
+  };
+
+  const handlePaymentCompleted = async (requestId: string) => {
+    try {
+      await supabase
+        .from('service_requests')
+        .update({ payment_completed: true })
+        .eq('id', requestId);
+
+      setShowPaymentModal(false);
+      setPendingPaymentRequest(null);
+      loadRequests();
+    } catch (error) {
+      console.error('Error marking payment as completed:', error);
+      alert('Erro ao confirmar pagamento');
+    }
+  };
+
+  const handleSkipPayment = () => {
+    setShowPaymentModal(false);
+    setPendingPaymentRequest(null);
+  };
+
   if (trackingRequestId) {
     return (
       <ClientGPSTracking
@@ -163,6 +247,16 @@ export function MyRequests() {
               </span>
             </div>
 
+            {request.status === 'accepted' && request.payment_link && !request.payment_completed && (
+              <button
+                onClick={() => handlePayment(request)}
+                className="w-full mt-2 sm:mt-3 bg-blue-600 text-white py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
+              >
+                <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" />
+                Realizar Pagamento
+              </button>
+            )}
+
             {request.is_home_service && (request.status === 'accepted' || request.status === 'in_progress') && (
               <button
                 onClick={() => setTrackingRequestId(request.id)}
@@ -180,6 +274,64 @@ export function MyRequests() {
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600">Nenhum chamado realizado</p>
+        </div>
+      )}
+
+      {/* Modal de Pagamento */}
+      {showPaymentModal && pendingPaymentRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-fadeIn">
+            <div className="text-center mb-6">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Chamado Aceito!
+              </h3>
+              <p className="text-gray-600">
+                O profissional aceitou seu chamado. Para continuar, realize o pagamento do serviço.
+              </p>
+            </div>
+
+            <div className="bg-blue-50 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-3 mb-3">
+                <CreditCard className="w-6 h-6 text-blue-600" />
+                <div>
+                  <p className="font-semibold text-gray-900">Pagamento Necessário</p>
+                  <p className="text-sm text-gray-600">Clique no botão abaixo para pagar</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => {
+                  handlePayment(pendingPaymentRequest);
+                  // Após abrir o link, perguntar se pagou
+                  setTimeout(() => {
+                    if (confirm('Você concluiu o pagamento?')) {
+                      handlePaymentCompleted(pendingPaymentRequest.id);
+                    }
+                  }, 2000);
+                }}
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-5 h-5" />
+                Abrir Página de Pagamento
+              </button>
+
+              <button
+                onClick={handleSkipPayment}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Pagar Depois
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-4">
+              Você será redirecionado para uma página segura de pagamento
+            </p>
+          </div>
         </div>
       )}
     </div>

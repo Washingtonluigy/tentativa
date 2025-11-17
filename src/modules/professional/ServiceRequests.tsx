@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface ServiceRequest {
   id: string;
+  client_id: string;
   client_name: string;
   client_phone: string;
   client_city: string;
@@ -12,6 +13,7 @@ interface ServiceRequest {
   status: string;
   notes: string;
   created_at: string;
+  professional_service_id: string | null;
 }
 
 export function ServiceRequests() {
@@ -29,10 +31,12 @@ export function ServiceRequests() {
       .from('service_requests')
       .select(`
         id,
+        client_id,
         service_type,
         status,
         notes,
         created_at,
+        professional_service_id,
         users!service_requests_client_id_fkey(
           id,
           profiles(full_name, phone, city)
@@ -44,6 +48,7 @@ export function ServiceRequests() {
     if (data) {
       const formatted = data.map((r: any) => ({
         id: r.id,
+        client_id: r.client_id,
         client_name: r.users?.profiles?.full_name || 'Cliente',
         client_phone: r.users?.profiles?.phone || 'N/A',
         client_city: r.users?.profiles?.city || 'N/A',
@@ -51,34 +56,59 @@ export function ServiceRequests() {
         status: r.status,
         notes: r.notes,
         created_at: r.created_at,
+        professional_service_id: r.professional_service_id,
       }));
       setRequests(formatted);
     }
   };
 
-  const handleAccept = async (requestId: string, clientId: string) => {
-    await supabase
-      .from('service_requests')
-      .update({ status: 'accepted' })
-      .eq('id', requestId);
+  const handleAccept = async (requestId: string, clientId: string, professionalServiceId: string | null) => {
+    try {
+      let paymentLink = null;
 
-    const { data: conversationData } = await supabase
-      .from('conversations')
-      .select('id')
-      .eq('request_id', requestId)
-      .maybeSingle();
+      // Buscar o link de pagamento do serviço profissional
+      if (professionalServiceId) {
+        const { data: serviceData } = await supabase
+          .from('professional_services')
+          .select('payment_link')
+          .eq('id', professionalServiceId)
+          .maybeSingle();
 
-    if (!conversationData && user) {
+        if (serviceData?.payment_link) {
+          paymentLink = serviceData.payment_link;
+        }
+      }
+
+      // Atualizar o status e adicionar o link de pagamento
       await supabase
-        .from('conversations')
-        .insert([{
-          request_id: requestId,
-          client_id: clientId,
-          professional_id: user.id,
-        }]);
-    }
+        .from('service_requests')
+        .update({
+          status: 'accepted',
+          payment_link: paymentLink
+        })
+        .eq('id', requestId);
 
-    loadRequests();
+      const { data: conversationData } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('request_id', requestId)
+        .maybeSingle();
+
+      if (!conversationData && user) {
+        await supabase
+          .from('conversations')
+          .insert([{
+            request_id: requestId,
+            client_id: clientId,
+            professional_id: user.id,
+          }]);
+      }
+
+      loadRequests();
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      alert('Erro ao aceitar chamado');
+    }
   };
 
   const handleReject = async (requestId: string) => {
@@ -194,7 +224,7 @@ export function ServiceRequests() {
             {request.status === 'pending' && (
               <div className="flex gap-2 pt-3 border-t border-gray-100">
                 <button
-                  onClick={() => handleAccept(request.id, request.client_name)}
+                  onClick={() => handleAccept(request.id, request.client_id, request.professional_service_id)}
                   className="flex-1 bg-teal-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-teal-600 transition flex items-center justify-center gap-2"
                 >
                   <Check className="w-5 h-5" />
