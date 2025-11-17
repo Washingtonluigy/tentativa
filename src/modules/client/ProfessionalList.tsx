@@ -58,16 +58,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     const todayDayOfWeek = today.getDay();
     const currentTime = today.toTimeString().slice(0, 5);
 
-    const { data: availabilityData } = await supabase
-      .from('professional_availability')
-      .select('*')
-      .eq('professional_id', professionalId)
-      .eq('is_active', true);
-
-    if (!availabilityData || availabilityData.length === 0) {
-      return { status: 'no_schedule' as const };
-    }
-
+    // Verificar se profissional está em atendimento
     const { data: appointments } = await supabase
       .from('scheduled_appointments')
       .select('*')
@@ -79,14 +70,45 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       return { status: 'busy' as const };
     }
 
-    const todayAvailability = availabilityData.find(
-      (slot: any) => slot.day_of_week === todayDayOfWeek &&
-      slot.start_time <= currentTime &&
-      slot.end_time >= currentTime
-    );
+    // Buscar informações do profissional incluindo horário flexível
+    const { data: professionalData } = await supabase
+      .from('professionals')
+      .select('flexible_schedule_enabled, flexible_start_time, flexible_end_time')
+      .eq('id', professionalId)
+      .maybeSingle();
 
-    if (todayAvailability) {
-      return { status: 'available' as const };
+    // Verificar horário flexível primeiro
+    if (professionalData?.flexible_schedule_enabled) {
+      const flexStart = professionalData.flexible_start_time || '08:00:00';
+      const flexEnd = professionalData.flexible_end_time || '18:00:00';
+
+      // Normalizar formatos de tempo para comparação (HH:MM)
+      const currentTimeNormalized = currentTime.slice(0, 5);
+      const flexStartNormalized = flexStart.slice(0, 5);
+      const flexEndNormalized = flexEnd.slice(0, 5);
+
+      if (currentTimeNormalized >= flexStartNormalized && currentTimeNormalized <= flexEndNormalized) {
+        return { status: 'available' as const };
+      }
+    }
+
+    // Verificar horários específicos
+    const { data: availabilityData } = await supabase
+      .from('professional_availability')
+      .select('*')
+      .eq('professional_id', professionalId)
+      .eq('is_active', true);
+
+    if (availabilityData && availabilityData.length > 0) {
+      const todayAvailability = availabilityData.find(
+        (slot: any) => slot.day_of_week === todayDayOfWeek &&
+        slot.start_time <= currentTime &&
+        slot.end_time >= currentTime
+      );
+
+      if (todayAvailability) {
+        return { status: 'available' as const };
+      }
     }
 
     return { status: 'no_schedule' as const };
