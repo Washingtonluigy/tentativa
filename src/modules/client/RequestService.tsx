@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, MessageSquare, Video, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,35 +10,104 @@ interface RequestServiceProps {
   onSuccess: () => void;
 }
 
+interface ProfessionalService {
+  id: string;
+  name: string;
+  description: string;
+  price_message: number | null;
+  price_video: number | null;
+  price_local: number | null;
+}
+
 export function RequestService({ professionalId, professionalName, onBack, onSuccess }: RequestServiceProps) {
   const { user } = useAuth();
   const [serviceType, setServiceType] = useState<'message' | 'video_call' | 'in_person' | null>(null);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [services, setServices] = useState<ProfessionalService[]>([]);
+  const [selectedService, setSelectedService] = useState<ProfessionalService | null>(null);
+  const [loadingServices, setLoadingServices] = useState(true);
 
-  const serviceOptions = [
-    {
-      type: 'message' as const,
-      icon: MessageSquare,
-      title: 'Atendimento por Mensagem',
-      description: 'Converse por texto com o profissional',
-      price: 'R$ 50,00',
-    },
-    {
-      type: 'video_call' as const,
-      icon: Video,
-      title: 'Atendimento por Vídeo',
-      description: 'Chamada de vídeo em tempo real',
-      price: 'R$ 100,00',
-    },
-    {
-      type: 'in_person' as const,
-      icon: MapPin,
-      title: 'Atendimento Presencial',
-      description: 'O profissional vai até você',
-      price: 'R$ 150,00',
-    },
-  ];
+  useEffect(() => {
+    loadProfessionalServices();
+  }, [professionalId]);
+
+  const loadProfessionalServices = async () => {
+    setLoadingServices(true);
+    try {
+      // Buscar o professional_id a partir do user_id
+      const { data: professionalData } = await supabase
+        .from('professionals')
+        .select('id')
+        .eq('user_id', professionalId)
+        .maybeSingle();
+
+      if (!professionalData) {
+        console.error('Professional not found');
+        setLoadingServices(false);
+        return;
+      }
+
+      // Buscar serviços do profissional
+      const { data: servicesData, error } = await supabase
+        .from('professional_services')
+        .select('id, name, description, price_message, price_video, price_local')
+        .eq('professional_id', professionalData.id)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error loading services:', error);
+      } else if (servicesData && servicesData.length > 0) {
+        setServices(servicesData);
+        // Selecionar o primeiro serviço por padrão
+        setSelectedService(servicesData[0]);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const getServiceOptions = () => {
+    if (!selectedService) return [];
+
+    const options = [];
+
+    if (selectedService.price_message) {
+      options.push({
+        type: 'message' as const,
+        icon: MessageSquare,
+        title: 'Atendimento por Mensagem',
+        description: 'Converse por texto com o profissional',
+        price: `R$ ${selectedService.price_message.toFixed(2)}`,
+      });
+    }
+
+    if (selectedService.price_video) {
+      options.push({
+        type: 'video_call' as const,
+        icon: Video,
+        title: 'Atendimento por Vídeo',
+        description: 'Chamada de vídeo em tempo real',
+        price: `R$ ${selectedService.price_video.toFixed(2)}`,
+      });
+    }
+
+    if (selectedService.price_local) {
+      options.push({
+        type: 'in_person' as const,
+        icon: MapPin,
+        title: 'Atendimento Presencial',
+        description: 'O profissional vai até você',
+        price: `R$ ${selectedService.price_local.toFixed(2)}`,
+      });
+    }
+
+    return options;
+  };
+
+  const serviceOptions = getServiceOptions();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,11 +118,12 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
 
     const isHomeService = serviceType === 'in_person';
 
-    const { data: requestData, error: requestError } = await supabase
+    const { data: requestData, error: requestError} = await supabase
       .from('service_requests')
       .insert([{
         client_id: user.id,
         professional_id: professionalId,
+        professional_service_id: selectedService?.id || null,
         service_type: serviceType,
         notes: notes,
         status: 'pending',
@@ -110,6 +180,39 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
     }
   };
 
+  if (loadingServices) {
+    return (
+      <div className="p-4 pb-20 flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+      </div>
+    );
+  }
+
+  if (services.length === 0) {
+    return (
+      <div className="p-4 pb-20">
+        <div className="flex items-center gap-3 mb-6">
+          <button
+            onClick={onBack}
+            className="p-2 hover:bg-gray-100 rounded-lg transition"
+          >
+            <ArrowLeft className="w-6 h-6 text-gray-700" />
+          </button>
+          <h2 className="text-2xl font-bold text-gray-800">Abrir Chamado</h2>
+        </div>
+        <div className="text-center py-12">
+          <p className="text-gray-600">Este profissional ainda não cadastrou serviços.</p>
+          <button
+            onClick={onBack}
+            className="mt-4 px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 pb-20">
       <div className="flex items-center gap-3 mb-6">
@@ -126,12 +229,45 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {services.length > 1 && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Escolha o serviço
+            </label>
+            <div className="space-y-2">
+              {services.map((service) => (
+                <button
+                  key={service.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedService(service);
+                    setServiceType(null);
+                  }}
+                  className={`w-full bg-white rounded-lg shadow-sm p-4 border-2 transition text-left ${
+                    selectedService?.id === service.id
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <h3 className="font-semibold text-gray-800">{service.name}</h3>
+                  {service.description && (
+                    <p className="text-sm text-gray-600 mt-1">{service.description}</p>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
             Escolha o tipo de atendimento
           </label>
-          <div className="space-y-3">
-            {serviceOptions.map((option) => {
+          {serviceOptions.length === 0 ? (
+            <p className="text-gray-600 text-sm">Nenhuma modalidade disponível para este serviço.</p>
+          ) : (
+            <div className="space-y-3">
+              {serviceOptions.map((option) => {
               const Icon = option.icon;
               const isSelected = serviceType === option.type;
 
@@ -159,7 +295,8 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
                 </button>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
 
         <div>
@@ -177,7 +314,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
 
         <button
           type="submit"
-          disabled={!serviceType || loading}
+          disabled={!serviceType || loading || serviceOptions.length === 0}
           className="w-full bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'Enviando...' : 'Enviar Solicitação'}

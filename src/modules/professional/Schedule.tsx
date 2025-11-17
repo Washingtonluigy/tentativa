@@ -33,6 +33,9 @@ export function Schedule() {
     end_time: '17:00'
   });
   const [showAddForm, setShowAddForm] = useState(false);
+  const [flexibleScheduleEnabled, setFlexibleScheduleEnabled] = useState(false);
+  const [flexibleStartTime, setFlexibleStartTime] = useState('08:00');
+  const [flexibleEndTime, setFlexibleEndTime] = useState('18:00');
 
   useEffect(() => {
     loadProfessionalData();
@@ -50,7 +53,7 @@ export function Schedule() {
 
       const { data: profData, error } = await supabase
         .from('professionals')
-        .select('id')
+        .select('id, flexible_schedule_enabled, flexible_start_time, flexible_end_time')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -64,6 +67,9 @@ export function Schedule() {
 
       if (profData) {
         setProfessionalId(profData.id);
+        setFlexibleScheduleEnabled(profData.flexible_schedule_enabled || false);
+        setFlexibleStartTime(profData.flexible_start_time || '08:00');
+        setFlexibleEndTime(profData.flexible_end_time || '18:00');
         await loadAvailability(profData.id);
       } else {
         console.log('Schedule: Nenhum registro de profissional encontrado para este usuário');
@@ -90,6 +96,31 @@ export function Schedule() {
       console.error('Erro ao carregar disponibilidade:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveFlexibleSchedule = async () => {
+    if (!professionalId) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('professionals')
+        .update({
+          flexible_schedule_enabled: flexibleScheduleEnabled,
+          flexible_start_time: flexibleStartTime,
+          flexible_end_time: flexibleEndTime
+        })
+        .eq('id', professionalId);
+
+      if (error) throw error;
+
+      alert('Horário flexível salvo com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar horário flexível:', err);
+      alert('Erro ao salvar horário flexível. Tente novamente.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -200,6 +231,79 @@ export function Schedule() {
           <Plus className="w-5 h-5" />
           Adicionar
         </button>
+      </div>
+
+      {/* Horário de Trabalho Flexível */}
+      <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-sm p-6 mb-6 border-2 border-blue-200">
+        <div className="flex items-center gap-3 mb-4">
+          <Clock className="w-6 h-6 text-blue-600" />
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Horário de Trabalho Flexível</h3>
+            <p className="text-sm text-gray-600">Defina seu horário geral de disponibilidade</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <input
+              type="checkbox"
+              id="flexibleSchedule"
+              checked={flexibleScheduleEnabled}
+              onChange={(e) => setFlexibleScheduleEnabled(e.target.checked)}
+              className="w-5 h-5 text-teal-500 border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
+            />
+            <label htmlFor="flexibleSchedule" className="text-gray-700 font-medium cursor-pointer">
+              Ativar horário flexível (ex: 8h às 18h)
+            </label>
+          </div>
+
+          {flexibleScheduleEnabled && (
+            <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Horário de Início
+                  </label>
+                  <input
+                    type="time"
+                    value={flexibleStartTime}
+                    onChange={(e) => setFlexibleStartTime(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Horário de Término
+                  </label>
+                  <input
+                    type="time"
+                    value={flexibleEndTime}
+                    onChange={(e) => setFlexibleEndTime(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                <strong>Nota:</strong> Com o horário flexível ativo, você estará disponível todos os dias dentro deste intervalo, além dos horários específicos que você adicionar abaixo.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleSaveFlexibleSchedule}
+          disabled={saving}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <Save className="w-5 h-5" />
+          {saving ? 'Salvando...' : 'Salvar Horário Flexível'}
+        </button>
+      </div>
+
+      {/* Horários Específicos */}
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Horários Específicos</h3>
+        <p className="text-sm text-gray-600">Adicione horários fixos para dias específicos da semana</p>
       </div>
 
       {showAddForm && (
