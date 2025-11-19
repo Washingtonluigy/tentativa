@@ -175,7 +175,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         .from('conversations')
         .select('id')
         .eq('client_id', user.id)
-        .eq('professional_id', professionalId)
+        .eq('professional_id', actualProfessionalId)
         .maybeSingle();
 
       if (!existingConv) {
@@ -183,7 +183,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
           .from('conversations')
           .insert({
             client_id: user.id,
-            professional_id: professionalId,
+            professional_id: actualProfessionalId,
             request_id: requestData.id,
           });
 
