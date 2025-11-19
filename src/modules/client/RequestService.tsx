@@ -142,7 +142,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
 
       console.log('Sending service request:', {
         client_id: user.id,
-        professional_id: actualProfessionalId,
+        professional_id: professionalId,
         professional_service_id: selectedService.id,
         service_type: serviceType,
         status: 'pending',
@@ -152,7 +152,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         .from('service_requests')
         .insert([{
           client_id: user.id,
-          professional_id: actualProfessionalId,
+          professional_id: professionalId,
           professional_service_id: selectedService.id,
           service_type: serviceType,
           notes: notes,
@@ -175,7 +175,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         .from('conversations')
         .select('id')
         .eq('client_id', user.id)
-        .eq('professional_id', actualProfessionalId)
+        .eq('professional_id', professionalId)
         .maybeSingle();
 
       if (!existingConv) {
@@ -183,7 +183,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
           .from('conversations')
           .insert({
             client_id: user.id,
-            professional_id: actualProfessionalId,
+            professional_id: professionalId,
             request_id: requestData.id,
           });
 
