@@ -146,7 +146,6 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         professional_service_id: selectedService.id,
         service_type: serviceType,
         status: 'pending',
-        is_home_service: isHomeService,
       });
 
       const { data: requestData, error: requestError } = await supabase
@@ -158,7 +157,6 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
           service_type: serviceType,
           notes: notes,
           status: 'pending',
-          is_home_service: isHomeService,
         }])
         .select()
         .single();
