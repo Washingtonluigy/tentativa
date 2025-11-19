@@ -27,7 +27,7 @@ export function ServiceRequests() {
   const loadRequests = async () => {
     if (!user) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('service_requests')
       .select(`
         id,
@@ -36,28 +36,43 @@ export function ServiceRequests() {
         status,
         notes,
         created_at,
-        professional_service_id,
-        users!service_requests_client_id_fkey(
-          id,
-          profiles(full_name, phone, city)
-        )
+        professional_service_id
       `)
       .eq('professional_id', user.id)
       .order('created_at', { ascending: false });
 
+    if (error) {
+      console.error('Error loading requests:', error);
+      return;
+    }
+
     if (data) {
-      const formatted = data.map((r: any) => ({
-        id: r.id,
-        client_id: r.client_id,
-        client_name: r.users?.profiles?.full_name || 'Cliente',
-        client_phone: r.users?.profiles?.phone || 'N/A',
-        client_city: r.users?.profiles?.city || 'N/A',
-        service_type: r.service_type,
-        status: r.status,
-        notes: r.notes,
-        created_at: r.created_at,
-        professional_service_id: r.professional_service_id,
-      }));
+      // Buscar perfis dos clientes separadamente
+      const clientIds = [...new Set(data.map(r => r.client_id))];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, phone, city')
+        .in('user_id', clientIds);
+
+      const profilesMap = new Map(
+        profilesData?.map(p => [p.user_id, p]) || []
+      );
+
+      const formatted = data.map((r: any) => {
+        const profile = profilesMap.get(r.client_id);
+        return {
+          id: r.id,
+          client_id: r.client_id,
+          client_name: profile?.full_name || 'Cliente',
+          client_phone: profile?.phone || 'N/A',
+          client_city: profile?.city || 'N/A',
+          service_type: r.service_type,
+          status: r.status,
+          notes: r.notes,
+          created_at: r.created_at,
+          professional_service_id: r.professional_service_id,
+        };
+      });
       setRequests(formatted);
     }
   };
