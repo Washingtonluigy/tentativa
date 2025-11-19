@@ -27,6 +27,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   const [services, setServices] = useState<ProfessionalService[]>([]);
   const [selectedService, setSelectedService] = useState<ProfessionalService | null>(null);
   const [loadingServices, setLoadingServices] = useState(true);
+  const [actualProfessionalId, setActualProfessionalId] = useState<string>('');
 
   useEffect(() => {
     loadProfessionalServices();
@@ -43,10 +44,13 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         .maybeSingle();
 
       if (!professionalData) {
-        console.error('Professional not found');
+        console.error('Professional not found for user_id:', professionalId);
         setLoadingServices(false);
         return;
       }
+
+      console.log('Professional found:', professionalData);
+      setActualProfessionalId(professionalData.id);
 
       // Buscar serviços do profissional
       const { data: servicesData, error } = await supabase
@@ -112,27 +116,63 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!serviceType || !user) return;
+    if (!serviceType || !user) {
+      console.error('Missing required data:', { serviceType, user: !!user });
+      alert('Por favor, selecione um tipo de atendimento.');
+      return;
+    }
+
+    if (!selectedService) {
+      console.error('No service selected');
+      alert('Erro ao identificar o serviço. Por favor, tente novamente.');
+      return;
+    }
 
     setLoading(true);
 
-    const isHomeService = serviceType === 'in_person';
+    try {
+      const isHomeService = serviceType === 'in_person';
 
-    const { data: requestData, error: requestError} = await supabase
-      .from('service_requests')
-      .insert([{
+      if (!actualProfessionalId) {
+        console.error('Professional ID not loaded');
+        alert('Erro ao identificar o profissional. Por favor, tente novamente.');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Sending service request:', {
         client_id: user.id,
-        professional_id: professionalId,
-        professional_service_id: selectedService?.id || null,
+        professional_id: actualProfessionalId,
+        professional_service_id: selectedService.id,
         service_type: serviceType,
-        notes: notes,
         status: 'pending',
         is_home_service: isHomeService,
-      }])
-      .select()
-      .single();
+      });
 
-    if (!requestError && requestData) {
+      const { data: requestData, error: requestError } = await supabase
+        .from('service_requests')
+        .insert([{
+          client_id: user.id,
+          professional_id: actualProfessionalId,
+          professional_service_id: selectedService.id,
+          service_type: serviceType,
+          notes: notes,
+          status: 'pending',
+          is_home_service: isHomeService,
+        }])
+        .select()
+        .single();
+
+      if (requestError) {
+        console.error('Error creating service request:', requestError);
+        alert(`Erro ao criar solicitação: ${requestError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Service request created:', requestData);
+
+      // Criar ou atualizar conversa
       const { data: existingConv } = await supabase
         .from('conversations')
         .select('id')
@@ -141,19 +181,24 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         .maybeSingle();
 
       if (!existingConv) {
-        await supabase
+        const { error: convError } = await supabase
           .from('conversations')
           .insert({
             client_id: user.id,
             professional_id: professionalId,
             request_id: requestData.id,
           });
+
+        if (convError) {
+          console.error('Error creating conversation:', convError);
+        }
       }
 
+      // Capturar localização se for atendimento presencial
       if (isHomeService && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
-            await supabase
+            const { error: locationError } = await supabase
               .from('service_locations')
               .insert({
                 service_request_id: requestData.id,
@@ -165,18 +210,24 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
                 timestamp: new Date().toISOString(),
                 is_active: true,
               });
+
+            if (locationError) {
+              console.error('Error saving location:', locationError);
+            }
           },
           (error) => {
             console.error('Error getting location:', error);
           }
         );
       }
-    }
 
-    setLoading(false);
-
-    if (!requestError) {
+      setLoading(false);
+      alert('Solicitação enviada com sucesso!');
       onSuccess();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      alert('Erro inesperado ao enviar solicitação. Tente novamente.');
+      setLoading(false);
     }
   };
 
