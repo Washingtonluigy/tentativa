@@ -250,7 +250,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
       case 'video_call':
         return 'Atendimento por Vídeo';
       case 'in_person':
-        return 'Atendimento Presencial';
+        return 'Atendimento Domiciliar';
       default:
         return type;
     }
@@ -371,6 +371,14 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
               </div>
               {request.notes && (
                 <p className="text-sm text-gray-600 mt-2">{request.notes}</p>
+              )}
+              {request.service_type === 'in_person' && request.status === 'accepted' && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    <MapPin className="w-3 h-3 inline mr-1" />
+                    Use o GPS para ver a localização do cliente
+                  </p>
+                </div>
               )}
             </div>
 

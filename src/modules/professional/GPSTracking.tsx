@@ -79,39 +79,39 @@ export default function GPSTracking() {
 
     const user = JSON.parse(userData);
 
-    const { data: professional } = await supabase
-      .from('professionals')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!professional) return;
-
     const { data, error } = await supabase
       .from('service_requests')
-      .select(`
-        id,
-        service_type,
-        status,
-        is_home_service,
-        clients!inner(name)
-      `)
-      .eq('professional_id', professional.id)
-      .eq('is_home_service', true)
-      .in('status', ['accepted', 'in_progress']);
+      .select('id, service_type, status, client_id')
+      .eq('professional_id', user.id)
+      .eq('service_type', 'in_person')
+      .eq('status', 'accepted');
 
     if (error) {
       console.error('Error loading requests:', error);
       return;
     }
 
-    setActiveRequests(data?.map(req => ({
-      id: req.id,
-      client_name: (req.clients as any).name,
-      service_type: req.service_type,
-      status: req.status,
-      is_home_service: req.is_home_service
-    })) || []);
+    if (data && data.length > 0) {
+      const clientIds = data.map(r => r.client_id);
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', clientIds);
+
+      const profilesMap = new Map(
+        profilesData?.map(p => [p.user_id, p.full_name]) || []
+      );
+
+      setActiveRequests(data.map(req => ({
+        id: req.id,
+        client_name: profilesMap.get(req.client_id) || 'Cliente',
+        service_type: req.service_type,
+        status: req.status,
+        is_home_service: true
+      })));
+    } else {
+      setActiveRequests([]);
+    }
   };
 
   const loadLocations = async () => {
@@ -335,7 +335,7 @@ export default function GPSTracking() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold">{request.client_name}</p>
-                    <p className="text-sm text-gray-600">{request.service_type}</p>
+                    <p className="text-sm text-gray-600">Atendimento Domiciliar</p>
                   </div>
                   {selectedRequest === request.id && tracking ? (
                     <div className="flex items-center gap-2 text-green-600">

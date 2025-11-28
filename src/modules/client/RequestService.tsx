@@ -102,8 +102,8 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
       options.push({
         type: 'in_person' as const,
         icon: MapPin,
-        title: 'Atendimento Presencial',
-        description: 'O profissional vai até você',
+        title: 'Atendimento Domiciliar',
+        description: 'O profissional vai até você - GPS ativado',
         price: `R$ ${selectedService.price_local.toFixed(2)}`,
       });
     }
