@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, MessageSquare, Video, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface RequestServiceProps {
   professionalId: string;
@@ -28,6 +29,8 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   const [selectedService, setSelectedService] = useState<ProfessionalService | null>(null);
   const [loadingServices, setLoadingServices] = useState(true);
   const [actualProfessionalId, setActualProfessionalId] = useState<string>('');
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
 
   useEffect(() => {
     loadProfessionalServices();
@@ -220,11 +223,15 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
       }
 
       setLoading(false);
-      alert('Solicitação enviada com sucesso!');
-      onSuccess();
+      setNotificationMessage('Solicitação enviada com sucesso!');
+      setShowNotification(true);
+      setTimeout(() => {
+        onSuccess();
+      }, 3000);
     } catch (err) {
       console.error('Unexpected error:', err);
-      alert('Erro inesperado ao enviar solicitação. Tente novamente.');
+      setNotificationMessage('Erro inesperado ao enviar solicitação. Tente novamente.');
+      setShowNotification(true);
       setLoading(false);
     }
   };
@@ -369,6 +376,12 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
           {loading ? 'Enviando...' : 'Enviar Solicitação'}
         </button>
       </form>
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }
