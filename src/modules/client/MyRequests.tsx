@@ -68,7 +68,7 @@ export function MyRequests() {
   const loadRequests = async () => {
     if (!user) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('service_requests')
       .select(`
         id,
@@ -79,17 +79,21 @@ export function MyRequests() {
         is_home_service,
         payment_link,
         payment_completed,
-        users!service_requests_professional_id_fkey(
-          profiles(full_name)
-        )
+        professional_id,
+        profiles!service_requests_professional_id_fkey(full_name)
       `)
       .eq('client_id', user.id)
       .order('created_at', { ascending: false });
 
+    if (error) {
+      console.error('Error loading requests:', error);
+      return;
+    }
+
     if (data) {
       const formatted = data.map((r: any) => ({
         id: r.id,
-        professional_name: r.users?.profiles?.full_name || 'Profissional',
+        professional_name: r.profiles?.full_name || 'Profissional',
         service_type: r.service_type,
         status: r.status,
         created_at: r.created_at,
