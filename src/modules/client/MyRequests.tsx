@@ -68,20 +68,9 @@ export function MyRequests() {
   const loadRequests = async () => {
     if (!user) return;
 
-    const { data, error } = await supabase
+    const { data: requestsData, error } = await supabase
       .from('service_requests')
-      .select(`
-        id,
-        service_type,
-        status,
-        created_at,
-        notes,
-        is_home_service,
-        payment_link,
-        payment_completed,
-        professional_id,
-        profiles!service_requests_professional_id_fkey(full_name)
-      `)
+      .select('*')
       .eq('client_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -90,10 +79,21 @@ export function MyRequests() {
       return;
     }
 
-    if (data) {
-      const formatted = data.map((r: any) => ({
+    if (requestsData && requestsData.length > 0) {
+      const professionalIds = requestsData.map((r: any) => r.professional_id);
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', professionalIds);
+
+      const profilesMap = new Map(
+        profilesData?.map((p: any) => [p.user_id, p.full_name]) || []
+      );
+
+      const formatted = requestsData.map((r: any) => ({
         id: r.id,
-        professional_name: r.profiles?.full_name || 'Profissional',
+        professional_name: profilesMap.get(r.professional_id) || 'Profissional',
         service_type: r.service_type,
         status: r.status,
         created_at: r.created_at,
@@ -102,9 +102,9 @@ export function MyRequests() {
         payment_link: r.payment_link,
         payment_completed: r.payment_completed || false,
       }));
+
       setRequests(formatted);
 
-      // Verificar se há alguma solicitação aceita com pagamento pendente
       const pendingPayment = formatted.find(
         (r: Request) => r.status === 'accepted' && r.payment_link && !r.payment_completed
       );
@@ -113,6 +113,8 @@ export function MyRequests() {
         setPendingPaymentRequest(pendingPayment);
         setShowPaymentModal(true);
       }
+    } else {
+      setRequests([]);
     }
   };
 
