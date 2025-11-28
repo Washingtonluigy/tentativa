@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle, Calendar, Bell, TrendingUp } from 'lucide-react';
+import { CheckCircle, Calendar, Bell, TrendingUp, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
-export function ProfessionalDashboard() {
+interface ProfessionalDashboardProps {
+  onNavigateToGPS?: () => void;
+}
+
+export function ProfessionalDashboard({ onNavigateToGPS }: ProfessionalDashboardProps = {}) {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     completed: 0,
@@ -11,6 +15,7 @@ export function ProfessionalDashboard() {
     today: 0,
     total: 0,
   });
+  const [activeHomeServices, setActiveHomeServices] = useState(0);
 
   useEffect(() => {
     loadStats();
@@ -24,7 +29,7 @@ export function ProfessionalDashboard() {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [completedRes, pendingRes, todayRes, totalRes] = await Promise.all([
+    const [completedRes, pendingRes, todayRes, totalRes, homeServicesRes] = await Promise.all([
       supabase
         .from('service_requests')
         .select('id', { count: 'exact', head: true })
@@ -46,6 +51,12 @@ export function ProfessionalDashboard() {
         .from('service_requests')
         .select('id', { count: 'exact', head: true })
         .eq('professional_id', user.id),
+      supabase
+        .from('service_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('professional_id', user.id)
+        .eq('service_type', 'in_person')
+        .eq('status', 'accepted'),
     ]);
 
     setStats({
@@ -54,6 +65,8 @@ export function ProfessionalDashboard() {
       today: todayRes.count || 0,
       total: totalRes.count || 0,
     });
+
+    setActiveHomeServices(homeServicesRes.count || 0);
   };
 
   const statCards = [
@@ -128,7 +141,7 @@ export function ProfessionalDashboard() {
       </div>
 
       {stats.pending > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
           <div className="flex items-center gap-3">
             <Bell className="w-6 h-6 text-orange-600" />
             <div>
@@ -139,6 +152,30 @@ export function ProfessionalDashboard() {
                 Verifique a seção de chamados
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeHomeServices > 0 && (
+        <div
+          onClick={onNavigateToGPS}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-4 cursor-pointer hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
+        >
+          <div className="flex items-center justify-between text-white">
+            <div className="flex items-center gap-3">
+              <div className="bg-white bg-opacity-20 p-3 rounded-lg">
+                <MapPin className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="font-bold text-lg">
+                  {activeHomeServices} Atendimento{activeHomeServices > 1 ? 's' : ''} em Andamento
+                </p>
+                <p className="text-sm text-blue-100">
+                  Toque para abrir o rastreamento GPS
+                </p>
+              </div>
+            </div>
+            <div className="text-2xl">→</div>
           </div>
         </div>
       )}

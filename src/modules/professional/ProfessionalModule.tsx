@@ -29,7 +29,10 @@ export function ProfessionalModule() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <ProfessionalDashboard key={dashboardKey} />;
+        return <ProfessionalDashboard
+          key={dashboardKey}
+          onNavigateToGPS={() => setActiveTab('gps')}
+        />;
       case 'services':
         return <ServiceManagement />;
       case 'requests':
@@ -44,7 +47,10 @@ export function ProfessionalModule() {
       case 'conversations':
         return <Messages />;
       default:
-        return <ProfessionalDashboard key={dashboardKey} />;
+        return <ProfessionalDashboard
+          key={dashboardKey}
+          onNavigateToGPS={() => setActiveTab('gps')}
+        />;
     }
   };
 
