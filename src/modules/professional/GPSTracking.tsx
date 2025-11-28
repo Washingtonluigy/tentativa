@@ -75,16 +75,22 @@ export default function GPSTracking() {
 
   const loadActiveRequests = async () => {
     const userData = localStorage.getItem('user');
-    if (!userData) return;
+    if (!userData) {
+      console.log('No user data in localStorage');
+      return;
+    }
 
     const user = JSON.parse(userData);
+    console.log('Loading requests for user:', user.id);
 
     const { data, error } = await supabase
       .from('service_requests')
-      .select('id, service_type, status, client_id')
+      .select('id, service_type, status, client_id, professional_id')
       .eq('professional_id', user.id)
       .eq('service_type', 'in_person')
       .in('status', ['accepted', 'pending']);
+
+    console.log('Service requests query result:', { data, error });
 
     if (error) {
       console.error('Error loading requests:', error);
@@ -93,23 +99,29 @@ export default function GPSTracking() {
 
     if (data && data.length > 0) {
       const clientIds = data.map(r => r.client_id);
-      const { data: profilesData } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, full_name')
         .in('user_id', clientIds);
+
+      console.log('Profiles query result:', { profilesData, profilesError });
 
       const profilesMap = new Map(
         profilesData?.map(p => [p.user_id, p.full_name]) || []
       );
 
-      setActiveRequests(data.map(req => ({
+      const requests = data.map(req => ({
         id: req.id,
         client_name: profilesMap.get(req.client_id) || 'Cliente',
         service_type: req.service_type,
         status: req.status,
         is_home_service: true
-      })));
+      }));
+
+      console.log('Setting active requests:', requests);
+      setActiveRequests(requests);
     } else {
+      console.log('No active requests found');
       setActiveRequests([]);
     }
   };
