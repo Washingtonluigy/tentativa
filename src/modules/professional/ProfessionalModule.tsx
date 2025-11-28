@@ -33,7 +33,10 @@ export function ProfessionalModule() {
       case 'services':
         return <ServiceManagement />;
       case 'requests':
-        return <ServiceRequests onRequestUpdate={refreshDashboard} />;
+        return <ServiceRequests
+          onRequestUpdate={refreshDashboard}
+          onNavigateToConversations={() => setActiveTab('conversations')}
+        />;
       case 'schedule':
         return <Schedule />;
       case 'gps':

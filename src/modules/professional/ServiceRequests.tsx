@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare } from 'lucide-react';
+import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare, Mail, CheckCircle, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -16,13 +16,27 @@ interface ServiceRequest {
   professional_service_id: string | null;
 }
 
-interface ServiceRequestsProps {
-  onRequestUpdate?: () => void;
+interface ClientDetails {
+  full_name: string;
+  phone: string;
+  city: string;
+  address: string;
+  cpf: string;
+  birth_date: string;
+  created_at: string;
 }
 
-export function ServiceRequests({ onRequestUpdate }: ServiceRequestsProps = {}) {
+interface ServiceRequestsProps {
+  onRequestUpdate?: () => void;
+  onNavigateToConversations?: () => void;
+}
+
+export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: ServiceRequestsProps = {}) {
   const { user } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
+  const [selectedClient, setSelectedClient] = useState<{ requestId: string; clientId: string } | null>(null);
+  const [clientDetails, setClientDetails] = useState<ClientDetails | null>(null);
+  const [showClientModal, setShowClientModal] = useState(false);
 
   useEffect(() => {
     loadRequests();
@@ -161,6 +175,41 @@ export function ServiceRequests({ onRequestUpdate }: ServiceRequestsProps = {}) 
     }
   };
 
+  const handleClientClick = async (clientId: string, requestId: string) => {
+    setSelectedClient({ requestId, clientId });
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, phone, city, address, cpf, birth_date, created_at')
+      .eq('user_id', clientId)
+      .maybeSingle();
+
+    if (data) {
+      setClientDetails(data);
+      setShowClientModal(true);
+    }
+  };
+
+  const handleSendMessage = () => {
+    setShowClientModal(false);
+    onNavigateToConversations?.();
+  };
+
+  const handleCompleteService = async () => {
+    if (!selectedClient) return;
+
+    if (confirm('Deseja realmente finalizar este atendimento?')) {
+      await supabase
+        .from('service_requests')
+        .update({ status: 'completed' })
+        .eq('id', selectedClient.requestId);
+
+      setShowClientModal(false);
+      loadRequests();
+      onRequestUpdate?.();
+    }
+  };
+
   const getServiceTypeIcon = (type: string) => {
     switch (type) {
       case 'message':
@@ -226,12 +275,20 @@ export function ServiceRequests({ onRequestUpdate }: ServiceRequestsProps = {}) 
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
           >
             <div className="flex items-start justify-between mb-3">
-              <div className="flex items-center gap-3">
+              <div
+                className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition"
+                onClick={() => request.status === 'accepted' && handleClientClick(request.client_id, request.id)}
+              >
                 <div className="bg-blue-100 p-3 rounded-full">
                   <User className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-800">{request.client_name}</h3>
+                  <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                    {request.client_name}
+                    {request.status === 'accepted' && (
+                      <Info className="w-4 h-4 text-blue-500" />
+                    )}
+                  </h3>
                   <p className="text-sm text-gray-600">{request.client_phone}</p>
                   <p className="text-sm text-gray-500">{request.client_city}</p>
                 </div>
@@ -286,6 +343,103 @@ export function ServiceRequests({ onRequestUpdate }: ServiceRequestsProps = {}) 
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600">Nenhum chamado no momento</p>
+        </div>
+      )}
+
+      {showClientModal && clientDetails && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-gray-800">Informações do Cliente</h3>
+                <button
+                  onClick={() => setShowClientModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-3 rounded-full">
+                    <User className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Nome Completo</p>
+                    <p className="font-semibold text-gray-800">{clientDetails.full_name}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 p-3 rounded-full">
+                    <Phone className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Telefone</p>
+                    <p className="font-semibold text-gray-800">{clientDetails.phone}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-100 p-3 rounded-full">
+                    <MapPin className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Cidade</p>
+                    <p className="font-semibold text-gray-800">{clientDetails.city}</p>
+                  </div>
+                </div>
+
+                {clientDetails.address && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-500 mb-1">Endereço</p>
+                    <p className="text-gray-800">{clientDetails.address}</p>
+                  </div>
+                )}
+
+                {clientDetails.cpf && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-500 mb-1">CPF</p>
+                    <p className="text-gray-800">{clientDetails.cpf}</p>
+                  </div>
+                )}
+
+                {clientDetails.birth_date && (
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm text-gray-500 mb-1">Data de Nascimento</p>
+                    <p className="text-gray-800">
+                      {new Date(clientDetails.birth_date).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                )}
+
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="text-sm text-gray-500 mb-1">Cliente desde</p>
+                  <p className="text-gray-800">
+                    {new Date(clientDetails.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleSendMessage}
+                  className="w-full bg-teal-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-teal-600 transition flex items-center justify-center gap-2"
+                >
+                  <Mail className="w-5 h-5" />
+                  Mandar Mensagem
+                </button>
+                <button
+                  onClick={handleCompleteService}
+                  className="w-full bg-green-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-green-600 transition flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Finalizar Atendimento
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
