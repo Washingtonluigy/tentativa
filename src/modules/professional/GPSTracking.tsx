@@ -84,7 +84,7 @@ export default function GPSTracking() {
       .select('id, service_type, status, client_id')
       .eq('professional_id', user.id)
       .eq('service_type', 'in_person')
-      .eq('status', 'accepted');
+      .in('status', ['accepted', 'pending']);
 
     if (error) {
       console.error('Error loading requests:', error);
@@ -335,7 +335,19 @@ export default function GPSTracking() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="font-semibold">{request.client_name}</p>
-                    <p className="text-sm text-gray-600">Atendimento Domiciliar</p>
+                    <p className="text-sm text-gray-600">
+                      Atendimento Domiciliar
+                      {request.status === 'pending' && (
+                        <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full">
+                          Pendente
+                        </span>
+                      )}
+                      {request.status === 'accepted' && (
+                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
+                          Aceito
+                        </span>
+                      )}
+                    </p>
                   </div>
                   {selectedRequest === request.id && tracking ? (
                     <div className="flex items-center gap-2 text-green-600">
@@ -344,7 +356,7 @@ export default function GPSTracking() {
                     </div>
                   ) : (
                     <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
-                      Iniciar
+                      Ver Localização
                     </button>
                   )}
                 </div>
