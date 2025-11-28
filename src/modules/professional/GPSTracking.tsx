@@ -386,31 +386,6 @@ export default function GPSTracking() {
       </div>
 
       <div ref={mapContainer} className="flex-1" />
-
-      {tracking && (
-        <div className="bg-white border-t p-4">
-          <div className="grid grid-cols-2 gap-4">
-            {professionalLocation && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Sua Localização</p>
-                <p className="text-sm font-mono">
-                  {professionalLocation.latitude.toFixed(6)}, {professionalLocation.longitude.toFixed(6)}
-                </p>
-                <p className="text-xs text-gray-500">Precisão: {professionalLocation.accuracy.toFixed(0)}m</p>
-              </div>
-            )}
-            {clientLocation && (
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Cliente</p>
-                <p className="text-sm font-mono">
-                  {clientLocation.latitude.toFixed(6)}, {clientLocation.longitude.toFixed(6)}
-                </p>
-                <p className="text-xs text-gray-500">Precisão: {clientLocation.accuracy.toFixed(0)}m</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -261,45 +261,14 @@ export default function ClientGPSTracking({ serviceRequestId, onClose }: ClientG
 
       <div ref={mapContainer} className="flex-1" />
 
-      <div className="bg-white border-t p-4">
-        {tracking && (
-          <div className="mb-3 flex items-center justify-center gap-2 text-green-600">
+      {tracking && (
+        <div className="bg-white border-t p-3">
+          <div className="flex items-center justify-center gap-2 text-green-600">
             <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium">Rastreamento ativo</span>
           </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
-          {clientLocation && (
-            <div className="bg-red-50 p-3 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <MapPin size={16} className="text-red-600" />
-                <p className="text-xs font-semibold text-red-900">Sua Localização</p>
-              </div>
-              <p className="text-xs font-mono text-red-800">
-                {clientLocation.latitude.toFixed(6)}, {clientLocation.longitude.toFixed(6)}
-              </p>
-              <p className="text-xs text-red-600 mt-1">Precisão: {clientLocation.accuracy.toFixed(0)}m</p>
-            </div>
-          )}
-          {professionalLocation ? (
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="flex items-center gap-2 mb-1">
-                <Navigation size={16} className="text-blue-600" />
-                <p className="text-xs font-semibold text-blue-900">Profissional</p>
-              </div>
-              <p className="text-xs font-mono text-blue-800">
-                {professionalLocation.latitude.toFixed(6)}, {professionalLocation.longitude.toFixed(6)}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">Precisão: {professionalLocation.accuracy.toFixed(0)}m</p>
-            </div>
-          ) : (
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <p className="text-xs text-gray-500">Aguardando localização do profissional...</p>
-            </div>
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
