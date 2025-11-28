@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare, Mail, CheckCircle, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
 
 interface ServiceRequest {
   id: string;
@@ -37,6 +38,13 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
   const [selectedClient, setSelectedClient] = useState<{ requestId: string; clientId: string } | null>(null);
   const [clientDetails, setClientDetails] = useState<ClientDetails | null>(null);
   const [showClientModal, setShowClientModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pending' | 'in_progress' | 'completed'>('pending');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => {
     loadRequests();
@@ -164,15 +172,21 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
   };
 
   const handleReject = async (requestId: string) => {
-    if (confirm('Deseja realmente recusar este chamado?')) {
-      await supabase
-        .from('service_requests')
-        .update({ status: 'rejected' })
-        .eq('id', requestId);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Recusar Chamado',
+      message: 'Deseja realmente recusar este chamado?',
+      onConfirm: async () => {
+        await supabase
+          .from('service_requests')
+          .update({ status: 'rejected' })
+          .eq('id', requestId);
 
-      loadRequests();
-      onRequestUpdate?.();
-    }
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        loadRequests();
+        onRequestUpdate?.();
+      }
+    });
   };
 
   const handleClientClick = async (clientId: string, requestId: string) => {
@@ -198,16 +212,22 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
   const handleCompleteService = async () => {
     if (!selectedClient) return;
 
-    if (confirm('Deseja realmente finalizar este atendimento?')) {
-      await supabase
-        .from('service_requests')
-        .update({ status: 'completed' })
-        .eq('id', selectedClient.requestId);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Finalizar Atendimento',
+      message: 'Deseja realmente finalizar este atendimento?',
+      onConfirm: async () => {
+        await supabase
+          .from('service_requests')
+          .update({ status: 'completed' })
+          .eq('id', selectedClient.requestId);
 
-      setShowClientModal(false);
-      loadRequests();
-      onRequestUpdate?.();
-    }
+        setConfirmModal({ ...confirmModal, isOpen: false });
+        setShowClientModal(false);
+        loadRequests();
+        onRequestUpdate?.();
+      }
+    });
   };
 
   const getServiceTypeIcon = (type: string) => {
@@ -241,8 +261,10 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
       case 'pending':
         return 'bg-orange-100 text-orange-700';
       case 'accepted':
-        return 'bg-green-100 text-green-700';
+        return 'bg-blue-100 text-blue-700';
       case 'rejected':
+        return 'bg-red-100 text-red-700';
+      case 'completed':
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
@@ -254,29 +276,71 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
       case 'pending':
         return 'Pendente';
       case 'accepted':
-        return 'Aceito';
+        return 'Em Andamento';
       case 'rejected':
         return 'Recusado';
       case 'completed':
-        return 'Concluído';
+        return 'Finalizado';
       default:
         return status;
     }
   };
 
+  const filteredRequests = requests.filter(request => {
+    if (activeTab === 'pending') return request.status === 'pending';
+    if (activeTab === 'in_progress') return request.status === 'accepted';
+    if (activeTab === 'completed') return request.status === 'completed';
+    return true;
+  });
+
   return (
     <div className="p-4 pb-20">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Chamados</h2>
 
+      <div className="flex gap-2 mb-6 overflow-x-auto">
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition ${
+            activeTab === 'pending'
+              ? 'bg-orange-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Pendente ({requests.filter(r => r.status === 'pending').length})
+        </button>
+        <button
+          onClick={() => setActiveTab('in_progress')}
+          className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition ${
+            activeTab === 'in_progress'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Em Andamento ({requests.filter(r => r.status === 'accepted').length})
+        </button>
+        <button
+          onClick={() => setActiveTab('completed')}
+          className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition ${
+            activeTab === 'completed'
+              ? 'bg-red-500 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          Finalizado ({requests.filter(r => r.status === 'completed').length})
+        </button>
+      </div>
+
       <div className="space-y-4">
-        {requests.map((request) => (
+        {filteredRequests.map((request) => (
           <div
             key={request.id}
             className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
           >
             <div className="flex items-start justify-between mb-3">
               <div
-                className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 -m-2 transition"
+                className={`flex items-center gap-3 rounded-lg p-2 -m-2 transition ${
+                  request.status === 'accepted' ? 'cursor-pointer hover:bg-gray-50' : ''
+                }`}
                 onClick={() => request.status === 'accepted' && handleClientClick(request.client_id, request.id)}
               >
                 <div className="bg-blue-100 p-3 rounded-full">
@@ -339,12 +403,27 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
         ))}
       </div>
 
-      {requests.length === 0 && (
+      {filteredRequests.length === 0 && (
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Nenhum chamado no momento</p>
+          <p className="text-gray-600">
+            {activeTab === 'pending' && 'Nenhum chamado pendente'}
+            {activeTab === 'in_progress' && 'Nenhum chamado em andamento'}
+            {activeTab === 'completed' && 'Nenhum chamado finalizado'}
+          </p>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+        confirmColor={confirmModal.title.includes('Finalizar') ? 'bg-green-500 hover:bg-green-600' : 'bg-teal-500 hover:bg-teal-600'}
+      />
 
       {showClientModal && clientDetails && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
