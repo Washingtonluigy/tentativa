@@ -11,6 +11,11 @@ import GPSTracking from './GPSTracking';
 
 export function ProfessionalModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [dashboardKey, setDashboardKey] = useState(0);
+
+  const refreshDashboard = () => {
+    setDashboardKey(prev => prev + 1);
+  };
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', value: 'dashboard' },
@@ -24,11 +29,11 @@ export function ProfessionalModule() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <ProfessionalDashboard />;
+        return <ProfessionalDashboard key={dashboardKey} />;
       case 'services':
         return <ServiceManagement />;
       case 'requests':
-        return <ServiceRequests />;
+        return <ServiceRequests onRequestUpdate={refreshDashboard} />;
       case 'schedule':
         return <Schedule />;
       case 'gps':
@@ -36,7 +41,7 @@ export function ProfessionalModule() {
       case 'conversations':
         return <Messages />;
       default:
-        return <ProfessionalDashboard />;
+        return <ProfessionalDashboard key={dashboardKey} />;
     }
   };
 

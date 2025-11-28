@@ -19,7 +19,12 @@ export function ProfessionalDashboard() {
   const loadStats = async () => {
     if (!user) return;
 
-    const [completedRes, pendingRes, appointmentsRes] = await Promise.all([
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const [completedRes, pendingRes, todayRes, totalRes] = await Promise.all([
       supabase
         .from('service_requests')
         .select('id', { count: 'exact', head: true })
@@ -31,7 +36,14 @@ export function ProfessionalDashboard() {
         .eq('professional_id', user.id)
         .eq('status', 'pending'),
       supabase
-        .from('appointments')
+        .from('service_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('professional_id', user.id)
+        .in('status', ['accepted', 'pending'])
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString()),
+      supabase
+        .from('service_requests')
         .select('id', { count: 'exact', head: true })
         .eq('professional_id', user.id),
     ]);
@@ -39,8 +51,8 @@ export function ProfessionalDashboard() {
     setStats({
       completed: completedRes.count || 0,
       pending: pendingRes.count || 0,
-      today: 0,
-      total: appointmentsRes.count || 0,
+      today: todayRes.count || 0,
+      total: totalRes.count || 0,
     });
   };
 

@@ -16,7 +16,11 @@ interface ServiceRequest {
   professional_service_id: string | null;
 }
 
-export function ServiceRequests() {
+interface ServiceRequestsProps {
+  onRequestUpdate?: () => void;
+}
+
+export function ServiceRequests({ onRequestUpdate }: ServiceRequestsProps = {}) {
   const { user } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
 
@@ -138,6 +142,7 @@ export function ServiceRequests() {
       }
 
       loadRequests();
+      onRequestUpdate?.();
     } catch (error) {
       console.error('Error accepting request:', error);
       alert('Erro ao aceitar chamado');
@@ -152,6 +157,7 @@ export function ServiceRequests() {
         .eq('id', requestId);
 
       loadRequests();
+      onRequestUpdate?.();
     }
   };
 
