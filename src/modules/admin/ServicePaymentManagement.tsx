@@ -254,7 +254,8 @@ export function ServicePaymentManagement() {
         />
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+      {/* Desktop: Table View */}
+      <div className="hidden md:block bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -369,6 +370,106 @@ export function ServicePaymentManagement() {
               {searchTerm ? 'Tente buscar com outros termos' : 'Aguardando profissionais cadastrarem serviços'}
             </p>
           </div>
+        )}
+      </div>
+
+      {/* Mobile: Card View */}
+      <div className="md:hidden space-y-3">
+        {filteredRows.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {searchTerm ? 'Nenhum serviço encontrado' : 'Nenhum serviço cadastrado'}
+            </h3>
+            <p className="text-gray-600 text-sm">
+              {searchTerm ? 'Tente buscar com outros termos' : 'Aguardando profissionais cadastrarem serviços'}
+            </p>
+          </div>
+        ) : (
+          filteredRows.map((row) => {
+            const rowId = `${row.serviceId}-${row.serviceType}`;
+            const isEditing = editingRow === rowId;
+
+            return (
+              <div key={rowId} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 space-y-3">
+                {/* Service Name */}
+                <div className="font-semibold text-gray-900 text-lg">{row.serviceName}</div>
+
+                {/* Professional Info */}
+                <div className="border-t pt-3">
+                  <div className="text-xs text-gray-500 mb-1">PROFISSIONAL</div>
+                  <div className="font-medium text-gray-900">{row.professionalName}</div>
+                  <div className="text-sm text-gray-600">{row.professionalEmail}</div>
+                </div>
+
+                {/* Service Type & Price */}
+                <div className="border-t pt-3">
+                  <div className="text-xs text-gray-500 mb-2">VALORES</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 text-purple-600">
+                      {getServiceTypeIcon(row.serviceType)}
+                      <span className="text-sm font-medium">
+                        {getServiceTypeLabel(row.serviceType)}:
+                      </span>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900">
+                      R$ {row.price.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Link */}
+                <div className="border-t pt-3">
+                  <div className="text-xs text-gray-500 mb-2">LINK DE PAGAMENTO</div>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        value={paymentLink}
+                        onChange={(e) => setPaymentLink(e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleSavePaymentLink(row)}
+                          disabled={saving}
+                          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm font-medium"
+                        >
+                          <Save className="w-4 h-4" />
+                          Salvar
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          disabled={saving}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {row.paymentLink ? (
+                        <div className="text-sm text-gray-600 break-all bg-gray-50 p-2 rounded">
+                          {row.paymentLink}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-400 italic">Sem link cadastrado</div>
+                      )}
+                      <button
+                        onClick={() => handleEditClick(row)}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        {row.paymentLink ? 'Editar' : 'Adicionar'} Link
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </div>
