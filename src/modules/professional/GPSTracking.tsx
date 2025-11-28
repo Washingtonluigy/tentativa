@@ -74,7 +74,7 @@ export default function GPSTracking() {
   }, [professionalLocation, clientLocation]);
 
   const loadActiveRequests = async () => {
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('currentUser');
     if (!userData) {
       console.log('No user data in localStorage');
       return;
@@ -175,7 +175,7 @@ export default function GPSTracking() {
       return;
     }
 
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('currentUser');
     if (!userData) return;
 
     const user = JSON.parse(userData);
@@ -233,7 +233,7 @@ export default function GPSTracking() {
     }
 
     if (selectedRequest) {
-      const userData = localStorage.getItem('user');
+      const userData = localStorage.getItem('currentUser');
       if (userData) {
         const user = JSON.parse(userData);
         await supabase

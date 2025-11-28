@@ -110,7 +110,7 @@ export default function ClientGPSTracking({ serviceRequestId, onClose }: ClientG
       return;
     }
 
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('currentUser');
     if (!userData) return;
 
     const user = JSON.parse(userData);
@@ -165,7 +165,7 @@ export default function ClientGPSTracking({ serviceRequestId, onClose }: ClientG
       watchIdRef.current = null;
     }
 
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem('currentUser');
     if (userData) {
       const user = JSON.parse(userData);
       await supabase
