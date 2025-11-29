@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, Phone, MapPinIcon, Briefcase, Award } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, Phone, MapPinIcon, Briefcase, Award, Video, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { VideoCallRoom } from '../../components/VideoCallRoom';
 
 interface Request {
   id: string;
@@ -20,6 +21,8 @@ interface Request {
   is_home_service: boolean;
   payment_link: string | null;
   payment_completed: boolean;
+  video_call_room_id?: string | null;
+  video_call_status?: string | null;
 }
 
 interface MyRequestsProps {
@@ -39,6 +42,9 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [requestToCancel, setRequestToCancel] = useState<string | null>(null);
   const [cancellationReason, setCancellationReason] = useState('');
+  const [videoCallRoom, setVideoCallRoom] = useState<{ roomId: string; userName: string } | null>(null);
+  const [showVideoCallNotification, setShowVideoCallNotification] = useState(false);
+  const [pendingVideoCallRequest, setPendingVideoCallRequest] = useState<Request | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -56,9 +62,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
         },
         (payload: any) => {
           if (payload.new.status === 'accepted' && payload.new.payment_link && !payload.new.payment_completed) {
-            // Carregar a solicitação completa
             loadRequests();
-            // Mostrar modal de pagamento
             const request = {
               id: payload.new.id,
               payment_link: payload.new.payment_link,
@@ -72,6 +76,19 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
             };
             setPendingPaymentRequest(request);
             setShowPaymentModal(true);
+          }
+
+          if (payload.new.video_call_room_id && payload.new.video_call_status === 'pending') {
+            loadRequests();
+            const updatedRequest = requests.find(r => r.id === payload.new.id);
+            if (updatedRequest) {
+              setPendingVideoCallRequest({
+                ...updatedRequest,
+                video_call_room_id: payload.new.video_call_room_id,
+                video_call_status: payload.new.video_call_status
+              });
+              setShowVideoCallNotification(true);
+            }
           }
         }
       )
@@ -276,6 +293,49 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
     onOpenChat(professionalId);
   };
 
+  const handleAcceptVideoCall = async () => {
+    if (!pendingVideoCallRequest || !user) return;
+
+    await supabase
+      .from('service_requests')
+      .update({
+        video_call_status: 'active',
+      })
+      .eq('id', pendingVideoCallRequest.id);
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    setVideoCallRoom({
+      roomId: pendingVideoCallRequest.video_call_room_id!,
+      userName: profileData?.full_name || 'Cliente',
+    });
+
+    setShowVideoCallNotification(false);
+    setPendingVideoCallRequest(null);
+    loadRequests();
+  };
+
+  const handleJoinVideoCall = async (request: Request) => {
+    if (!user || !request.video_call_room_id) return;
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    setVideoCallRoom({
+      roomId: request.video_call_room_id,
+      userName: profileData?.full_name || 'Cliente',
+    });
+
+    loadRequests();
+  };
+
   if (trackingRequestId) {
     return (
       <ClientGPSTracking
@@ -377,6 +437,16 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               >
                 <MapPin size={16} className="sm:w-[18px] sm:h-[18px]" />
                 Rastrear Profissional
+              </button>
+            )}
+
+            {request.service_type === 'video_call' && request.status === 'accepted' && request.video_call_room_id && (
+              <button
+                onClick={() => handleJoinVideoCall(request)}
+                className="w-full mt-2 sm:mt-3 bg-blue-500 text-white py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-blue-600 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm shadow-md"
+              >
+                <Video size={16} className="sm:w-[18px] sm:h-[18px]" />
+                {request.video_call_status === 'active' ? 'Voltar para Chamada' : 'Entrar na Chamada'}
               </button>
             )}
           </div>
@@ -621,6 +691,56 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {showVideoCallNotification && pendingVideoCallRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-bounce">
+            <div className="text-center mb-6">
+              <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Camera className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Chamada de Vídeo
+              </h3>
+              <p className="text-gray-600">
+                {pendingVideoCallRequest.professional_name} está te chamando para uma videochamada
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleAcceptVideoCall}
+                className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-4 px-6 rounded-xl font-bold hover:from-green-600 hover:to-teal-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <Video className="w-6 h-6" />
+                Aceitar Chamada
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowVideoCallNotification(false);
+                  setPendingVideoCallRequest(null);
+                }}
+                className="w-full bg-red-500 text-white py-4 px-6 rounded-xl font-bold hover:bg-red-600 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              >
+                <X className="w-6 h-6" />
+                Recusar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {videoCallRoom && (
+        <VideoCallRoom
+          roomId={videoCallRoom.roomId}
+          userName={videoCallRoom.userName}
+          onClose={() => {
+            setVideoCallRoom(null);
+            loadRequests();
+          }}
+        />
       )}
     </div>
   );

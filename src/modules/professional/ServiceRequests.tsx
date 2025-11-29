@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare, Mail, CheckCircle, Info } from 'lucide-react';
+import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare, Mail, CheckCircle, Info, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { VideoCallRoom } from '../../components/VideoCallRoom';
 
 interface ServiceRequest {
   id: string;
@@ -15,6 +16,8 @@ interface ServiceRequest {
   notes: string;
   created_at: string;
   professional_service_id: string | null;
+  video_call_room_id?: string | null;
+  video_call_status?: string | null;
 }
 
 interface ClientDetails {
@@ -45,6 +48,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
     message: string;
     onConfirm: () => void;
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+  const [videoCallRoom, setVideoCallRoom] = useState<{ roomId: string; userName: string } | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -230,6 +234,58 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
     });
   };
 
+  const handleStartVideoCall = async (request: ServiceRequest) => {
+    if (!user) return;
+
+    const roomId = `video-call-${request.id}-${Date.now()}`;
+
+    await supabase
+      .from('service_requests')
+      .update({
+        video_call_room_id: roomId,
+        video_call_status: 'pending',
+        video_call_started_at: new Date().toISOString(),
+      })
+      .eq('id', request.id);
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    setVideoCallRoom({
+      roomId,
+      userName: profileData?.full_name || 'Profissional',
+    });
+
+    loadRequests();
+  };
+
+  const handleJoinVideoCall = async (request: ServiceRequest) => {
+    if (!user || !request.video_call_room_id) return;
+
+    await supabase
+      .from('service_requests')
+      .update({
+        video_call_status: 'active',
+      })
+      .eq('id', request.id);
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    setVideoCallRoom({
+      roomId: request.video_call_room_id,
+      userName: profileData?.full_name || 'Profissional',
+    });
+
+    loadRequests();
+  };
+
   const getServiceTypeIcon = (type: string) => {
     switch (type) {
       case 'message':
@@ -380,6 +436,41 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
                   </p>
                 </div>
               )}
+              {request.service_type === 'video_call' && request.status === 'accepted' && (
+                <div className="mt-2">
+                  {!request.video_call_room_id ? (
+                    <button
+                      onClick={() => handleStartVideoCall(request)}
+                      className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-2 px-4 rounded-lg font-medium hover:from-green-600 hover:to-teal-600 transition-all shadow-md flex items-center justify-center gap-2"
+                    >
+                      <Camera className="w-5 h-5" />
+                      Abrir Câmera
+                    </button>
+                  ) : request.video_call_status === 'pending' ? (
+                    <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-xs text-yellow-700 font-medium mb-2 flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        Aguardando cliente entrar na chamada...
+                      </p>
+                      <button
+                        onClick={() => handleJoinVideoCall(request)}
+                        className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Video className="w-5 h-5" />
+                        Entrar na Chamada
+                      </button>
+                    </div>
+                  ) : request.video_call_status === 'active' ? (
+                    <button
+                      onClick={() => handleJoinVideoCall(request)}
+                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-600 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Video className="w-5 h-5" />
+                      Voltar para Chamada
+                    </button>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
@@ -528,6 +619,17 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
             </div>
           </div>
         </div>
+      )}
+
+      {videoCallRoom && (
+        <VideoCallRoom
+          roomId={videoCallRoom.roomId}
+          userName={videoCallRoom.userName}
+          onClose={() => {
+            setVideoCallRoom(null);
+            loadRequests();
+          }}
+        />
       )}
     </div>
   );
