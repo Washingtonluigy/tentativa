@@ -49,9 +49,16 @@ export function ProfessionalManagement() {
   }, []);
 
   const loadProfessionals = async () => {
-    const { data: profData } = await supabase
+    const { data: profData, error } = await supabase
       .from('professionals')
       .select('*');
+
+    if (error) {
+      console.error('Erro ao carregar profissionais:', error);
+      setNotificationMessage('Erro ao carregar profissionais: ' + error.message);
+      setShowNotification(true);
+      return;
+    }
 
     if (!profData) return;
 
@@ -93,7 +100,7 @@ export function ProfessionalManagement() {
   };
 
   const loadCategories = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('categories')
       .select('id, name')
       .order('name');

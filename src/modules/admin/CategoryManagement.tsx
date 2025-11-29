@@ -33,10 +33,17 @@ export function CategoryManagement() {
   }, []);
 
   const loadCategories = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .order('name');
+
+    if (error) {
+      console.error('Erro ao carregar categorias:', error);
+      setNotificationMessage('Erro ao carregar categorias: ' + error.message);
+      setShowNotification(true);
+      return;
+    }
 
     if (data) {
       setCategories(data);
