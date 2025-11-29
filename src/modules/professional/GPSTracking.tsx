@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { supabase } from '../../lib/supabase';
-import { MapPin, Navigation, AlertCircle } from 'lucide-react';
+import { MapPin, Navigation, AlertCircle, X } from 'lucide-react';
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -34,9 +34,11 @@ export default function GPSTracking() {
   const map = useRef<mapboxgl.Map | null>(null);
   const [activeRequests, setActiveRequests] = useState<ServiceRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
+  const [selectedRequestName, setSelectedRequestName] = useState<string>('');
   const [professionalLocation, setProfessionalLocation] = useState<Location | null>(null);
   const [clientLocation, setClientLocation] = useState<Location | null>(null);
   const [tracking, setTracking] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const markersRef = useRef<{ professional?: mapboxgl.Marker; client?: mapboxgl.Marker }>({});
@@ -54,7 +56,7 @@ export default function GPSTracking() {
   }, [selectedRequest]);
 
   useEffect(() => {
-    if (!map.current && mapContainer.current) {
+    if (showMap && !map.current && mapContainer.current) {
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
         style: 'mapbox://styles/mapbox/streets-v12',
@@ -64,7 +66,7 @@ export default function GPSTracking() {
 
       map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
     }
-  }, []);
+  }, [showMap]);
 
   useEffect(() => {
     if (map.current && (professionalLocation || clientLocation)) {
@@ -166,8 +168,10 @@ export default function GPSTracking() {
     }
   };
 
-  const startTracking = async (requestId: string) => {
+  const startTracking = async (requestId: string, clientName: string) => {
     setSelectedRequest(requestId);
+    setSelectedRequestName(clientName);
+    setShowMap(true);
     setError(null);
 
     if (!navigator.geolocation) {
@@ -246,7 +250,9 @@ export default function GPSTracking() {
     }
 
     setTracking(false);
+    setShowMap(false);
     setSelectedRequest(null);
+    setSelectedRequestName('');
     setProfessionalLocation(null);
     setClientLocation(null);
 
@@ -257,6 +263,11 @@ export default function GPSTracking() {
     if (markersRef.current.client) {
       markersRef.current.client.remove();
       markersRef.current.client = undefined;
+    }
+
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
     }
   };
 
@@ -315,9 +326,49 @@ export default function GPSTracking() {
     map.current.fitBounds(bounds, { padding: 100, maxZoom: 15 });
   };
 
+  if (showMap) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex flex-col">
+        <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Navigation className="animate-pulse" size={24} />
+            <div>
+              <h2 className="text-lg font-bold">Rastreamento GPS</h2>
+              <p className="text-sm text-blue-100">Cliente: {selectedRequestName}</p>
+            </div>
+          </div>
+          <button
+            onClick={stopTracking}
+            className="p-2 hover:bg-blue-700 rounded-lg transition"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-50 border-b border-red-200 flex items-start gap-2">
+            <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
+        <div ref={mapContainer} className="flex-1" />
+
+        {tracking && (
+          <div className="bg-white border-t p-3">
+            <div className="flex items-center justify-center gap-2 text-green-600">
+              <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">Rastreamento ativo - Siga para a localização do cliente</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full">
-      <div className="bg-white border-b p-4">
+      <div className="bg-white p-4">
         <h2 className="text-xl font-bold text-gray-800 mb-4">Rastreamento GPS</h2>
 
         {activeRequests.length === 0 ? (
@@ -330,19 +381,7 @@ export default function GPSTracking() {
             {activeRequests.map((request) => (
               <div
                 key={request.id}
-                className={`p-3 border rounded-lg cursor-pointer transition ${
-                  selectedRequest === request.id
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-blue-300'
-                }`}
-                onClick={() => {
-                  if (selectedRequest === request.id) {
-                    stopTracking();
-                  } else {
-                    if (tracking) stopTracking();
-                    startTracking(request.id);
-                  }
-                }}
+                className="p-3 border rounded-lg"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -361,31 +400,18 @@ export default function GPSTracking() {
                       )}
                     </p>
                   </div>
-                  {selectedRequest === request.id && tracking ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <Navigation size={20} className="animate-pulse" />
-                      <span className="text-sm">Rastreando</span>
-                    </div>
-                  ) : (
-                    <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">
-                      Ver Localização
-                    </button>
-                  )}
+                  <button
+                    onClick={() => startTracking(request.id, request.client_name)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition"
+                  >
+                    Ver Localização
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="text-red-600 flex-shrink-0" size={20} />
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        )}
       </div>
-
-      <div ref={mapContainer} className="flex-1" />
     </div>
   );
 }
