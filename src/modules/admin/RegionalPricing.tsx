@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { MapPin, DollarSign, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface RegionalPrice {
   id: string;
@@ -17,6 +18,8 @@ export function RegionalPricing() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
   const [formData, setFormData] = useState({
     state: '',
     city: '',
@@ -64,20 +67,23 @@ export function RegionalPricing() {
           .eq('id', editingId);
 
         if (error) throw error;
-        alert('Valor regional atualizado com sucesso!');
+        setNotificationMessage('Valor regional atualizado com sucesso!');
+        setShowNotification(true);
       } else {
         const { error } = await supabase
           .from('regional_minimum_prices')
           .insert([dataToSave]);
 
         if (error) throw error;
-        alert('Valor regional cadastrado com sucesso!');
+        setNotificationMessage('Valor regional cadastrado com sucesso!');
+        setShowNotification(true);
       }
 
       resetForm();
       loadRegionalPrices();
     } catch (error: any) {
-      alert('Erro: ' + error.message);
+      setNotificationMessage('Erro: ' + error.message);
+      setShowNotification(true);
     }
   };
 
@@ -103,10 +109,12 @@ export function RegionalPricing() {
         .eq('id', id);
 
       if (error) throw error;
-      alert('Valor regional excluído com sucesso!');
+      setNotificationMessage('Valor regional excluído com sucesso!');
+      setShowNotification(true);
       loadRegionalPrices();
     } catch (error: any) {
-      alert('Erro ao excluir: ' + error.message);
+      setNotificationMessage('Erro ao excluir: ' + error.message);
+      setShowNotification(true);
     }
   };
 
@@ -320,6 +328,12 @@ export function RegionalPricing() {
           ))
         )}
       </div>
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }
