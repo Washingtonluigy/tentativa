@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, Phone, MapPinIcon, Briefcase, Award } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
@@ -8,7 +8,10 @@ interface Request {
   id: string;
   professional_id: string;
   professional_name: string;
-  professional_description: string;
+  professional_phone: string;
+  professional_city: string;
+  professional_areas: string;
+  professional_experience: number;
   service_type: string;
   status: string;
   created_at: string;
@@ -30,6 +33,8 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const [pendingPaymentRequest, setPendingPaymentRequest] = useState<Request | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [professionalDetails, setProfessionalDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   useEffect(() => {
     loadRequests();
@@ -92,31 +97,34 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
 
       const { data: servicesData } = await supabase
         .from('professional_services')
-        .select('user_id, description')
+        .select('user_id, areas_of_expertise, years_of_experience')
         .in('user_id', professionalIds);
 
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, full_name, bio')
+        .select('user_id, full_name, phone, city')
         .in('user_id', professionalIds);
 
       const servicesMap = new Map(
-        servicesData?.map((s: any) => [s.user_id, s.description]) || []
+        servicesData?.map((s: any) => [s.user_id, { areas: s.areas_of_expertise, experience: s.years_of_experience }]) || []
       );
 
       const profilesMap = new Map(
-        profilesData?.map((p: any) => [p.user_id, { name: p.full_name, bio: p.bio }]) || []
+        profilesData?.map((p: any) => [p.user_id, { name: p.full_name, phone: p.phone, city: p.city }]) || []
       );
 
       const formatted = requestsData.map((r: any) => {
         const profile = profilesMap.get(r.professional_id);
-        const serviceDesc = servicesMap.get(r.professional_id);
+        const service = servicesMap.get(r.professional_id);
 
         return {
           id: r.id,
           professional_id: r.professional_id,
           professional_name: profile?.name || 'Profissional',
-          professional_description: serviceDesc || profile?.bio || 'Profissional qualificado pronto para atender você',
+          professional_phone: profile?.phone || 'Não informado',
+          professional_city: profile?.city || 'Não informado',
+          professional_areas: service?.areas || 'Não informado',
+          professional_experience: service?.experience || 0,
           service_type: r.service_type,
           status: r.status,
           created_at: r.created_at,
@@ -440,19 +448,52 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
             </div>
 
             <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl p-4 mb-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center">
-                  <User className="w-6 h-6 text-blue-600" />
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-gradient-to-br from-blue-500 to-teal-500 w-14 h-14 rounded-full flex items-center justify-center shadow-lg">
+                  <User className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-gray-900">{selectedRequest.professional_name}</p>
+                  <p className="font-bold text-lg text-gray-900">{selectedRequest.professional_name}</p>
                   <p className="text-sm text-gray-600 capitalize">{getServiceTypeLabel(selectedRequest.service_type)}</p>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg p-3">
-                <p className="text-sm font-medium text-gray-700 mb-1">Sobre:</p>
-                <p className="text-sm text-gray-600">{selectedRequest.professional_description}</p>
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg p-3 flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-0.5">Telefone</p>
+                    <p className="text-sm font-semibold text-gray-900">{selectedRequest.professional_phone}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-3 flex items-start gap-3">
+                  <MapPinIcon className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-0.5">Cidade</p>
+                    <p className="text-sm font-semibold text-gray-900">{selectedRequest.professional_city}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-3 flex items-start gap-3">
+                  <Briefcase className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-0.5">Áreas de Atuação</p>
+                    <p className="text-sm font-semibold text-gray-900">{selectedRequest.professional_areas}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-lg p-3 flex items-start gap-3">
+                  <Award className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-0.5">Experiência</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {selectedRequest.professional_experience > 0
+                        ? `${selectedRequest.professional_experience} ${selectedRequest.professional_experience === 1 ? 'ano' : 'anos'}`
+                        : 'Não informado'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
