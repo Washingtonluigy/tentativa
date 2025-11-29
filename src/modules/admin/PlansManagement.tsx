@@ -3,6 +3,7 @@ import { Plus, DollarSign, Edit, Trash2, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { RegionalPricing } from './RegionalPricing';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface Plan {
   id: string;
@@ -18,6 +19,8 @@ export function PlansManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'plans' | 'regional'>('plans');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -56,7 +59,8 @@ export function PlansManagement() {
 
       if (error) {
         console.error('Erro ao atualizar plano:', error);
-        alert('Erro ao atualizar plano: ' + error.message);
+        setNotificationMessage('Erro ao atualizar plano: ' + error.message);
+        setShowNotification(true);
         return;
       }
     } else {
@@ -72,7 +76,8 @@ export function PlansManagement() {
 
       if (error) {
         console.error('Erro ao criar plano:', error);
-        alert('Erro ao criar plano: ' + error.message);
+        setNotificationMessage('Erro ao criar plano: ' + error.message);
+        setShowNotification(true);
         return;
       }
     }
@@ -291,6 +296,12 @@ export function PlansManagement() {
           )}
         </>
       )}
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }

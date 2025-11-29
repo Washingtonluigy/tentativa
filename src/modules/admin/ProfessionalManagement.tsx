@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Upload, X, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface Category {
   id: string;
@@ -28,6 +29,8 @@ export function ProfessionalManagement() {
   const [uploading, setUploading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -104,11 +107,13 @@ export function ProfessionalManagement() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecione apenas arquivos de imagem');
+        setNotificationMessage('Por favor, selecione apenas arquivos de imagem');
+        setShowNotification(true);
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 5MB');
+        setNotificationMessage('A imagem deve ter no máximo 5MB');
+        setShowNotification(true);
         return;
       }
       setPhotoFile(file);
@@ -136,7 +141,8 @@ export function ProfessionalManagement() {
 
     if (uploadError) {
       console.error('Erro ao fazer upload:', uploadError);
-      alert('Erro ao fazer upload da foto: ' + uploadError.message);
+      setNotificationMessage('Erro ao fazer upload da foto: ' + uploadError.message);
+      setShowNotification(true);
       return null;
     }
 
@@ -561,6 +567,12 @@ export function ProfessionalManagement() {
           </div>
         ))}
       </div>
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }

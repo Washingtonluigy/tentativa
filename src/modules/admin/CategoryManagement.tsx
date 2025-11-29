@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Folder, Edit, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface Category {
   id: string;
@@ -19,6 +20,8 @@ export function CategoryManagement() {
   const [uploading, setUploading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -44,11 +47,13 @@ export function CategoryManagement() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Por favor, selecione apenas arquivos de imagem');
+        setNotificationMessage('Por favor, selecione apenas arquivos de imagem');
+        setShowNotification(true);
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        alert('A imagem deve ter no máximo 5MB');
+        setNotificationMessage('A imagem deve ter no máximo 5MB');
+        setShowNotification(true);
         return;
       }
       setImageFile(file);
@@ -76,7 +81,8 @@ export function CategoryManagement() {
 
     if (uploadError) {
       console.error('Erro ao fazer upload:', uploadError);
-      alert('Erro ao fazer upload da imagem: ' + uploadError.message);
+      setNotificationMessage('Erro ao fazer upload da imagem: ' + uploadError.message);
+      setShowNotification(true);
       return null;
     }
 
@@ -105,7 +111,8 @@ export function CategoryManagement() {
 
       if (error) {
         console.error('Erro ao atualizar categoria:', error);
-        alert('Erro ao atualizar categoria: ' + error.message);
+        setNotificationMessage('Erro ao atualizar categoria: ' + error.message);
+        setShowNotification(true);
         return;
       }
     } else {
@@ -120,7 +127,8 @@ export function CategoryManagement() {
 
       if (error) {
         console.error('Erro ao criar categoria:', error);
-        alert('Erro ao criar categoria: ' + error.message);
+        setNotificationMessage('Erro ao criar categoria: ' + error.message);
+        setShowNotification(true);
         return;
       }
     }
@@ -325,6 +333,12 @@ export function CategoryManagement() {
           <p className="text-gray-600">Nenhuma categoria cadastrada</p>
         </div>
       )}
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }

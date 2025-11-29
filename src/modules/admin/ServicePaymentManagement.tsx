@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link as LinkIcon, Save, Search, MessageSquare, Video, MapPin, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface ServiceWithProfessional {
   id: string;
@@ -43,6 +44,8 @@ export function ServicePaymentManagement() {
   const [editingRow, setEditingRow] = useState<string | null>(null);
   const [paymentLink, setPaymentLink] = useState('');
   const [saving, setSaving] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
     loadServices();
@@ -180,7 +183,8 @@ export function ServicePaymentManagement() {
       setPaymentLink('');
     } catch (error) {
       console.error('Error saving payment link:', error);
-      alert('Erro ao salvar link de pagamento');
+      setNotificationMessage('Erro ao salvar link de pagamento');
+      setShowNotification(true);
     } finally {
       setSaving(false);
     }
@@ -472,6 +476,12 @@ export function ServicePaymentManagement() {
           })
         )}
       </div>
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }

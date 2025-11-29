@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { CheckCircle, XCircle, Clock, Mail, Phone, MapPin, Briefcase, Calendar, User } from 'lucide-react';
+import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface Application {
   id: string;
@@ -23,6 +24,8 @@ export default function PendingApplications() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -127,12 +130,14 @@ export default function PendingApplications() {
 
       if (error) throw error;
 
-      alert(status === 'approved' ? 'Profissional aprovado com sucesso!' : 'Solicitação rejeitada.');
+      setNotificationMessage(status === 'approved' ? 'Profissional aprovado com sucesso!' : 'Solicitação rejeitada.');
+      setShowNotification(true);
       fetchApplications();
       setSelectedApp(null);
     } catch (err: any) {
       console.error('Erro ao atualizar status:', err);
-      alert('Erro: ' + err.message);
+      setNotificationMessage('Erro: ' + err.message);
+      setShowNotification(true);
     }
   };
 
@@ -308,6 +313,12 @@ export default function PendingApplications() {
           ))}
         </div>
       )}
+
+      <NotificationPopup
+        isOpen={showNotification}
+        message={notificationMessage}
+        onClose={() => setShowNotification(false)}
+      />
     </div>
   );
 }
