@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle } from 'lucide-react';
+import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Category {
@@ -232,6 +232,20 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           </button>
         </div>
 
+        {userCity && userState && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-blue-600" />
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                Mostrando profissionais de: {userCity} - {userState}
+              </p>
+              <p className="text-xs text-blue-700">
+                Apenas profissionais da sua cidade aparecem nos resultados
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
@@ -325,13 +339,26 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         </div>
 
         {filteredProfessionals.length === 0 && (
-          <div className="text-center py-12">
-            <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600">
+          <div className="text-center py-12 bg-gray-50 rounded-xl">
+            <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-800 font-medium mb-2">
               {urgencyMode
-                ? 'Nenhum profissional disponível no momento. Tente novamente mais tarde ou desative o modo urgência.'
+                ? 'Nenhum profissional disponível no momento'
                 : 'Nenhum profissional encontrado'
               }
+            </p>
+            <p className="text-gray-600 text-sm">
+              {userCity && userState ? (
+                <>
+                  Não há profissionais cadastrados em <strong>{userCity} - {userState}</strong>
+                  <br />
+                  <span className="text-xs text-gray-500 mt-1 block">
+                    Os profissionais devem estar na sua cidade para aparecer aqui
+                  </span>
+                </>
+              ) : (
+                'Complete seu cadastro com cidade e estado para ver profissionais da sua região'
+              )}
             </p>
           </div>
         )}
