@@ -14,15 +14,29 @@ export interface AuthResponse {
 export const authService = {
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
+      console.log('Tentando login com:', email);
+
       const { data, error } = await supabase
         .from('users')
         .select('id, email, role, password_hash')
         .eq('email', email)
         .maybeSingle();
 
-      if (error || !data) {
+      console.log('Resultado da query:', { data, error });
+
+      if (error) {
+        console.error('Erro ao buscar usuário:', error);
+        return { user: null, error: 'Erro ao conectar com o banco de dados: ' + error.message };
+      }
+
+      if (!data) {
+        console.log('Usuário não encontrado');
         return { user: null, error: 'Credenciais inválidas' };
       }
+
+      console.log('Senha informada:', password);
+      console.log('Senha no banco:', data.password_hash);
+      console.log('Senhas são iguais?', data.password_hash === password);
 
       if (data.password_hash === password) {
         const user: User = {
@@ -37,6 +51,7 @@ export const authService = {
 
       return { user: null, error: 'Credenciais inválidas' };
     } catch (error) {
+      console.error('Erro no catch:', error);
       return { user: null, error: 'Erro ao fazer login' };
     }
   },
