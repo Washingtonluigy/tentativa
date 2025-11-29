@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Calendar } from 'lucide-react';
+import { Star, Calendar, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Appointment {
   id: string;
   professional_name: string;
+  service_type: string;
   completed_at: string;
+  notes: string;
   rating: number | null;
   review_comment: string | null;
 }
@@ -25,29 +27,38 @@ export function AppointmentHistory() {
   const loadAppointments = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('appointments')
-      .select(`
-        id,
-        completed_at,
-        rating,
-        review_comment,
-        users!appointments_professional_id_fkey(
-          profiles(full_name)
-        )
-      `)
+    const { data: completedRequests } = await supabase
+      .from('service_requests')
+      .select('*')
       .eq('client_id', user.id)
-      .order('completed_at', { ascending: false });
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false });
 
-    if (data) {
-      const formatted = data.map((a: any) => ({
-        id: a.id,
-        professional_name: a.users?.profiles?.full_name || 'Profissional',
-        completed_at: a.completed_at,
-        rating: a.rating,
-        review_comment: a.review_comment,
+    if (completedRequests && completedRequests.length > 0) {
+      const professionalIds = completedRequests.map((r: any) => r.professional_id);
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', professionalIds);
+
+      const profilesMap = new Map(
+        profilesData?.map((p: any) => [p.user_id, p.full_name]) || []
+      );
+
+      const formatted = completedRequests.map((r: any) => ({
+        id: r.id,
+        professional_name: profilesMap.get(r.professional_id) || 'Profissional',
+        service_type: r.service_type,
+        completed_at: r.updated_at || r.created_at,
+        notes: r.notes || '',
+        rating: r.rating || null,
+        review_comment: r.review_comment || null,
       }));
+
       setAppointments(formatted);
+    } else {
+      setAppointments([]);
     }
   };
 
@@ -55,7 +66,7 @@ export function AppointmentHistory() {
     if (!ratingModal || rating === 0) return;
 
     await supabase
-      .from('appointments')
+      .from('service_requests')
       .update({
         rating,
         review_comment: comment,
@@ -68,6 +79,19 @@ export function AppointmentHistory() {
     loadAppointments();
   };
 
+  const getServiceTypeLabel = (type: string) => {
+    switch (type) {
+      case 'message':
+        return 'Mensagem';
+      case 'video_call':
+        return 'Vídeo';
+      case 'in_person':
+        return 'Presencial';
+      default:
+        return type;
+    }
+  };
+
   return (
     <div className="p-4 pb-20">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Histórico de Atendimentos</h2>
@@ -76,21 +100,36 @@ export function AppointmentHistory() {
         {appointments.map((appointment) => (
           <div
             key={appointment.id}
-            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
+            className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl shadow-sm p-4 border-2 border-blue-200"
           >
             <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-gray-800">{appointment.professional_name}</h3>
-                <p className="text-sm text-gray-600">
-                  {new Date(appointment.completed_at).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
+              <div className="flex items-center gap-2">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <CheckCircle className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-800">{appointment.professional_name}</h3>
+                  <p className="text-xs text-gray-600 capitalize">{getServiceTypeLabel(appointment.service_type)}</p>
+                </div>
               </div>
-              <Calendar className="w-5 h-5 text-gray-400" />
             </div>
+
+            <p className="text-sm text-gray-600 mb-2">
+              {new Date(appointment.completed_at).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+
+            {appointment.notes && (
+              <div className="bg-white rounded-lg p-3 mb-3">
+                <p className="text-xs font-medium text-gray-700 mb-1">Observações:</p>
+                <p className="text-sm text-gray-600">{appointment.notes}</p>
+              </div>
+            )}
 
             {appointment.rating ? (
               <div className="bg-gray-50 rounded-lg p-3">

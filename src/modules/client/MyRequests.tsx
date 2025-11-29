@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
 
 interface Request {
   id: string;
+  professional_id: string;
   professional_name: string;
+  professional_description: string;
   service_type: string;
   status: string;
   created_at: string;
@@ -22,6 +24,8 @@ export function MyRequests() {
   const [trackingRequestId, setTrackingRequestId] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [pendingPaymentRequest, setPendingPaymentRequest] = useState<Request | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     loadRequests();
@@ -84,16 +88,18 @@ export function MyRequests() {
 
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, full_name')
+        .select('user_id, full_name, bio')
         .in('user_id', professionalIds);
 
       const profilesMap = new Map(
-        profilesData?.map((p: any) => [p.user_id, p.full_name]) || []
+        profilesData?.map((p: any) => [p.user_id, { name: p.full_name, bio: p.bio }]) || []
       );
 
       const formatted = requestsData.map((r: any) => ({
         id: r.id,
-        professional_name: profilesMap.get(r.professional_id) || 'Profissional',
+        professional_id: r.professional_id,
+        professional_name: profilesMap.get(r.professional_id)?.name || 'Profissional',
+        professional_description: profilesMap.get(r.professional_id)?.bio || 'Sem descrição',
         service_type: r.service_type,
         status: r.status,
         created_at: r.created_at,
@@ -204,6 +210,29 @@ export function MyRequests() {
     setPendingPaymentRequest(null);
   };
 
+  const handleCancelRequest = async (requestId: string) => {
+    if (!confirm('Tem certeza que deseja cancelar este chamado?')) {
+      return;
+    }
+
+    try {
+      await supabase
+        .from('service_requests')
+        .update({ status: 'cancelled' })
+        .eq('id', requestId);
+
+      loadRequests();
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      alert('Erro ao cancelar chamado');
+    }
+  };
+
+  const openChat = (professionalId: string) => {
+    // Lógica para abrir chat será implementada
+    alert('Funcionalidade de chat em desenvolvimento');
+  };
+
   if (trackingRequestId) {
     return (
       <ClientGPSTracking
@@ -213,12 +242,15 @@ export function MyRequests() {
     );
   }
 
+  const activeRequests = requests.filter(r => r.status !== 'completed' && r.status !== 'cancelled');
+  const completedRequests = requests.filter(r => r.status === 'completed');
+
   return (
     <div className="p-3 sm:p-4 pb-20">
       <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">Meus Chamados</h2>
 
       <div className="space-y-3 sm:space-y-4">
-        {requests.map((request) => (
+        {activeRequests.map((request) => (
           <div
             key={request.id}
             className={`rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 border-2 ${getStatusColor(request.status)}`}
@@ -263,6 +295,38 @@ export function MyRequests() {
               </button>
             )}
 
+            {request.status === 'pending' && (
+              <button
+                onClick={() => handleCancelRequest(request.id)}
+                className="w-full mt-2 sm:mt-3 bg-red-50 text-red-600 py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-red-100 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm border border-red-200"
+              >
+                <X size={16} className="sm:w-[18px] sm:h-[18px]" />
+                Cancelar Chamado
+              </button>
+            )}
+
+            {request.status === 'accepted' && (
+              <div className="flex gap-2 mt-2 sm:mt-3">
+                <button
+                  onClick={() => {
+                    setSelectedRequest(request);
+                    setShowDetailsModal(true);
+                  }}
+                  className="flex-1 bg-blue-50 text-blue-600 py-2 px-3 rounded-lg font-medium hover:bg-blue-100 transition flex items-center justify-center gap-1 text-xs sm:text-sm border border-blue-200"
+                >
+                  <User size={16} />
+                  Ver Profissional
+                </button>
+                <button
+                  onClick={() => openChat(request.professional_id)}
+                  className="flex-1 bg-green-50 text-green-600 py-2 px-3 rounded-lg font-medium hover:bg-green-100 transition flex items-center justify-center gap-1 text-xs sm:text-sm border border-green-200"
+                >
+                  <MessageCircle size={16} />
+                  Mensagem
+                </button>
+              </div>
+            )}
+
             {request.is_home_service && (request.status === 'accepted' || request.status === 'in_progress') && (
               <button
                 onClick={() => setTrackingRequestId(request.id)}
@@ -276,7 +340,7 @@ export function MyRequests() {
         ))}
       </div>
 
-      {requests.length === 0 && (
+      {activeRequests.length === 0 && (
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600">Nenhum chamado realizado</p>
@@ -337,6 +401,79 @@ export function MyRequests() {
             <p className="text-xs text-gray-500 text-center mt-4">
               Você será redirecionado para uma página segura de pagamento
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Profissional */}
+      {showDetailsModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Detalhes do Profissional</h3>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedRequest(null);
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition"
+              >
+                <X size={24} className="text-gray-600" />
+              </button>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl p-4 mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center">
+                  <User className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900">{selectedRequest.professional_name}</p>
+                  <p className="text-sm text-gray-600 capitalize">{getServiceTypeLabel(selectedRequest.service_type)}</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg p-3">
+                <p className="text-sm font-medium text-gray-700 mb-1">Sobre:</p>
+                <p className="text-sm text-gray-600">{selectedRequest.professional_description}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  openChat(selectedRequest.professional_id);
+                  setShowDetailsModal(false);
+                }}
+                className="w-full bg-gradient-to-r from-green-500 to-teal-500 text-white py-3 px-6 rounded-xl font-semibold hover:from-green-600 hover:to-teal-600 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                Enviar Mensagem
+              </button>
+
+              {selectedRequest.is_home_service && (
+                <button
+                  onClick={() => {
+                    setTrackingRequestId(selectedRequest.id);
+                    setShowDetailsModal(false);
+                  }}
+                  className="w-full bg-teal-500 text-white py-3 px-6 rounded-xl font-semibold hover:bg-teal-600 transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  <MapPin className="w-5 h-5" />
+                  Rastrear Localização
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setSelectedRequest(null);
+                }}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       )}
