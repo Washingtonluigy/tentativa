@@ -52,6 +52,71 @@ export default function PendingApplications() {
 
   const updateApplicationStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
+      const application = applications.find(app => app.id === id);
+      if (!application) return;
+
+      if (status === 'approved') {
+        const { data: regionalData } = await supabase
+          .from('regional_minimum_prices')
+          .select('id')
+          .eq('state', application.state)
+          .eq('city', application.city)
+          .eq('active', true)
+          .maybeSingle();
+
+        let regionalPriceId = regionalData?.id;
+
+        if (!regionalPriceId) {
+          const { data: stateData } = await supabase
+            .from('regional_minimum_prices')
+            .select('id')
+            .eq('state', application.state)
+            .is('city', null)
+            .eq('active', true)
+            .maybeSingle();
+
+          regionalPriceId = stateData?.id;
+        }
+
+        const password = Math.random().toString(36).slice(-8) + 'A1!';
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: application.email,
+          password: password,
+          options: {
+            data: {
+              full_name: application.full_name,
+              role: 'professional'
+            }
+          }
+        });
+
+        if (authError) throw authError;
+
+        if (authData.user) {
+          await supabase
+            .from('users')
+            .update({
+              city: application.city,
+              state: application.state,
+              regional_price_id: regionalPriceId
+            })
+            .eq('id', authData.user.id);
+
+          await supabase
+            .from('professionals')
+            .insert([{
+              user_id: authData.user.id,
+              profession: application.profession,
+              registration_number: application.registration_number,
+              experience_years: application.experience_years,
+              bio: application.professional_references,
+              photo_url: application.photo_url,
+              is_active: true
+            }]);
+        }
+      }
+
       const { error } = await supabase
         .from('professional_applications')
         .update({
@@ -62,10 +127,12 @@ export default function PendingApplications() {
 
       if (error) throw error;
 
+      alert(status === 'approved' ? 'Profissional aprovado com sucesso!' : 'Solicitação rejeitada.');
       fetchApplications();
       setSelectedApp(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao atualizar status:', err);
+      alert('Erro: ' + err.message);
     }
   };
 

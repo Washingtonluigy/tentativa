@@ -31,10 +31,29 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [urgencyMode, setUrgencyMode] = useState(false);
+  const [userCity, setUserCity] = useState<string>('');
+  const [userState, setUserState] = useState<string>('');
 
   useEffect(() => {
     loadCategories();
+    loadUserLocation();
   }, []);
+
+  const loadUserLocation = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from('users')
+        .select('city, state')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (data) {
+        setUserCity(data.city || '');
+        setUserState(data.state || '');
+      }
+    }
+  };
 
   useEffect(() => {
     if (selectedCategory) {
@@ -117,7 +136,13 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const loadProfessionals = async (categoryId: string) => {
     const { data: profData, error } = await supabase
       .from('professionals')
-      .select('*')
+      .select(`
+        *,
+        users!inner (
+          city,
+          state
+        )
+      `)
       .eq('category_id', categoryId)
       .eq('status', 'active');
 
@@ -127,8 +152,15 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       return;
     }
 
+    let filteredByCity = profData;
+    if (userCity && userState) {
+      filteredByCity = profData.filter((p: any) =>
+        p.users?.city === userCity && p.users?.state === userState
+      );
+    }
+
     const formatted = await Promise.all(
-      profData.map(async (p: any) => {
+      filteredByCity.map(async (p: any) => {
         const { data: profileData } = await supabase
           .from('profiles')
           .select('full_name, photo_url')

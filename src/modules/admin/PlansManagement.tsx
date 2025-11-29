@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { Plus, DollarSign, Edit, Trash2, MapPin } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { RegionalPricing } from './RegionalPricing';
 
 interface Plan {
   id: string;
@@ -16,6 +17,7 @@ export function PlansManagement() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'plans' | 'regional'>('plans');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -197,64 +199,97 @@ export function PlansManagement() {
   return (
     <div className="p-4 pb-20">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Planos e Preços</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Gestão de Planos e Preços</h2>
+        {activeTab === 'plans' && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-600 transition flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Plano
+          </button>
+        )}
+      </div>
+
+      <div className="flex gap-2 mb-6 border-b border-gray-200">
         <button
-          onClick={() => setShowForm(true)}
-          className="bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-600 transition flex items-center gap-2"
+          onClick={() => setActiveTab('plans')}
+          className={`px-4 py-3 font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'plans'
+              ? 'text-teal-600 border-b-2 border-teal-600'
+              : 'text-gray-600 hover:text-gray-800'
+          }`}
         >
-          <Plus className="w-5 h-5" />
-          Novo
+          <DollarSign className="w-5 h-5" />
+          Planos de Serviço
+        </button>
+        <button
+          onClick={() => setActiveTab('regional')}
+          className={`px-4 py-3 font-medium transition-all flex items-center gap-2 ${
+            activeTab === 'regional'
+              ? 'text-teal-600 border-b-2 border-teal-600'
+              : 'text-gray-600 hover:text-gray-800'
+          }`}
+        >
+          <MapPin className="w-5 h-5" />
+          Valores por Região
         </button>
       </div>
 
-      <div className="space-y-3">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
-          >
-            <div className="flex items-start gap-3">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-800">{plan.name}</h3>
-                {plan.description && (
-                  <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
-                )}
-                <div className="flex items-center gap-3 mt-2">
-                  <span className="text-2xl font-bold text-teal-600">
-                    R$ {plan.price.toFixed(2)}
-                  </span>
-                  <span className="text-sm text-gray-500 capitalize">
-                    {plan.duration_type}
-                  </span>
+      {activeTab === 'regional' ? (
+        <RegionalPricing />
+      ) : (
+        <>
+          <div className="space-y-3">
+            {plans.map((plan) => (
+              <div
+                key={plan.id}
+                className="bg-white rounded-xl shadow-sm p-4 border border-gray-100"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <DollarSign className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800">{plan.name}</h3>
+                    {plan.description && (
+                      <p className="text-sm text-gray-600 mt-1">{plan.description}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="text-2xl font-bold text-teal-600">
+                        R$ {plan.price.toFixed(2)}
+                      </span>
+                      <span className="text-sm text-gray-500 capitalize">
+                        {plan.duration_type}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(plan)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition"
+                    >
+                      <Edit className="w-4 h-4 text-gray-600" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(plan.id)}
+                      className="p-2 hover:bg-red-50 rounded-lg transition"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(plan)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition"
-                >
-                  <Edit className="w-4 h-4 text-gray-600" />
-                </button>
-                <button
-                  onClick={() => handleDelete(plan.id)}
-                  className="p-2 hover:bg-red-50 rounded-lg transition"
-                >
-                  <Trash2 className="w-4 h-4 text-red-500" />
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {plans.length === 0 && (
-        <div className="text-center py-12">
-          <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Nenhum plano cadastrado</p>
-        </div>
+          {plans.length === 0 && (
+            <div className="text-center py-12">
+              <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-600">Nenhum plano cadastrado</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

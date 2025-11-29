@@ -49,13 +49,14 @@ export const authService = {
     birthDate: string,
     cpf: string,
     cep: string,
+    state: string,
     city: string,
     address: string
   ): Promise<AuthResponse> {
     try {
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .insert([{ email, password_hash: password, role: 'client' }])
+        .insert([{ email, password_hash: password, role: 'client', state, city }])
         .select()
         .single();
 

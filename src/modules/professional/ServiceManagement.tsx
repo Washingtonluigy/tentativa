@@ -41,15 +41,33 @@ export function ServiceManagement() {
   const loadProfessionalData = async () => {
     if (!user) return;
 
-    const { data } = await supabase
+    const { data: professionalData } = await supabase
       .from('professionals')
-      .select('id, minimum_price')
+      .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (data) {
-      setProfessionalId(data.id);
-      setMinimumPrice(data.minimum_price || 0);
+    if (professionalData) {
+      setProfessionalId(professionalData.id);
+
+      const { data: userData } = await supabase
+        .from('users')
+        .select(`
+          regional_price_id,
+          city,
+          state,
+          regional_minimum_prices (
+            minimum_price
+          )
+        `)
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (userData?.regional_minimum_prices) {
+        setMinimumPrice(userData.regional_minimum_prices.minimum_price || 0);
+      } else {
+        setMinimumPrice(0);
+      }
     }
   };
 

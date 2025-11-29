@@ -12,6 +12,7 @@ interface AuthContextType {
     birthDate: string,
     cpf: string,
     cep: string,
+    state: string,
     city: string,
     address: string
   ) => Promise<{ error: string | null }>;
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     birthDate: string,
     cpf: string,
     cep: string,
+    state: string,
     city: string,
     address: string
   ) => {
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       birthDate,
       cpf,
       cep,
+      state,
       city,
       address
     );

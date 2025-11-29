@@ -13,6 +13,7 @@ export function Register({ onLoginClick }: RegisterProps) {
     birthDate: '',
     cpf: '',
     cep: '',
+    state: '',
     city: '',
     address: '',
     phone: '',
@@ -50,6 +51,7 @@ export function Register({ onLoginClick }: RegisterProps) {
       formData.birthDate,
       formData.cpf,
       formData.cep,
+      formData.state,
       formData.city,
       formData.address
     );
@@ -149,18 +151,35 @@ export function Register({ onLoginClick }: RegisterProps) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Cidade
-            </label>
-            <input
-              type="text"
-              name="city"
-              value={formData.city}
-              onChange={handleChange}
-              className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
-              required
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Estado
+              </label>
+              <input
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                placeholder="Ex: Mato Grosso"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Cidade
+              </label>
+              <input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                placeholder="Ex: Cuiabá"
+                required
+              />
+            </div>
           </div>
 
           <div>
