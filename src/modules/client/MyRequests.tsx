@@ -3,6 +3,7 @@ import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalL
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
 
 interface Request {
   id: string;
@@ -35,6 +36,8 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [professionalDetails, setProfessionalDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [requestToCancel, setRequestToCancel] = useState<string | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -236,17 +239,22 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
     setPendingPaymentRequest(null);
   };
 
-  const handleCancelRequest = async (requestId: string) => {
-    if (!confirm('Tem certeza que deseja cancelar este chamado?')) {
-      return;
-    }
+  const handleCancelRequest = (requestId: string) => {
+    setRequestToCancel(requestId);
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelRequest = async () => {
+    if (!requestToCancel) return;
 
     try {
       await supabase
         .from('service_requests')
         .update({ status: 'cancelled' })
-        .eq('id', requestId);
+        .eq('id', requestToCancel);
 
+      setShowCancelModal(false);
+      setRequestToCancel(null);
       loadRequests();
     } catch (error) {
       console.error('Error cancelling request:', error);
@@ -535,6 +543,21 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
           </div>
         </div>
       )}
+
+      {/* Modal de Confirmação de Cancelamento */}
+      <ConfirmationModal
+        isOpen={showCancelModal}
+        onClose={() => {
+          setShowCancelModal(false);
+          setRequestToCancel(null);
+        }}
+        onConfirm={confirmCancelRequest}
+        title="Cancelar Chamado"
+        message="Tem certeza que deseja cancelar este chamado? Esta ação não pode ser desfeita."
+        confirmText="Sim, Cancelar"
+        cancelText="Não, Manter"
+        type="danger"
+      />
     </div>
   );
 }
