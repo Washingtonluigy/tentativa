@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, Calendar, CheckCircle } from 'lucide-react';
+import { Star, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -11,6 +11,8 @@ interface Appointment {
   notes: string;
   rating: number | null;
   review_comment: string | null;
+  status: string;
+  cancellation_reason?: string | null;
 }
 
 export function AppointmentHistory() {
@@ -31,7 +33,7 @@ export function AppointmentHistory() {
       .from('service_requests')
       .select('*')
       .eq('client_id', user.id)
-      .eq('status', 'completed')
+      .in('status', ['completed', 'cancelled'])
       .order('created_at', { ascending: false });
 
     if (completedRequests && completedRequests.length > 0) {
@@ -54,6 +56,8 @@ export function AppointmentHistory() {
         notes: r.notes || '',
         rating: r.rating || null,
         review_comment: r.review_comment || null,
+        status: r.status,
+        cancellation_reason: r.cancellation_reason || null,
       }));
 
       setAppointments(formatted);
@@ -131,7 +135,22 @@ export function AppointmentHistory() {
               </div>
             )}
 
-            {appointment.rating ? (
+            {appointment.status === 'cancelled' ? (
+              <div className="bg-red-50 border-l-4 border-red-500 rounded-lg p-3">
+                <div className="flex items-start gap-2">
+                  <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800 mb-1">Chamado Cancelado</p>
+                    {appointment.cancellation_reason && (
+                      <div>
+                        <p className="text-xs font-medium text-red-700 mb-1">Motivo:</p>
+                        <p className="text-sm text-red-700">{appointment.cancellation_reason}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : appointment.rating ? (
               <div className="bg-gray-50 rounded-lg p-3">
                 <div className="flex items-center gap-1 mb-1">
                   {[1, 2, 3, 4, 5].map((star) => (
@@ -170,7 +189,8 @@ export function AppointmentHistory() {
       {appointments.length === 0 && (
         <div className="text-center py-12">
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Nenhum atendimento concluído</p>
+          <p className="text-gray-600">Nenhum histórico de atendimento</p>
+          <p className="text-sm text-gray-500 mt-2">Seus atendimentos concluídos e cancelados aparecerão aqui</p>
         </div>
       )}
 

@@ -38,6 +38,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [requestToCancel, setRequestToCancel] = useState<string | null>(null);
+  const [cancellationReason, setCancellationReason] = useState('');
 
   useEffect(() => {
     loadRequests();
@@ -247,14 +248,23 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const confirmCancelRequest = async () => {
     if (!requestToCancel) return;
 
+    if (!cancellationReason.trim()) {
+      alert('Por favor, informe o motivo do cancelamento');
+      return;
+    }
+
     try {
       await supabase
         .from('service_requests')
-        .update({ status: 'cancelled' })
+        .update({
+          status: 'cancelled',
+          cancellation_reason: cancellationReason.trim()
+        })
         .eq('id', requestToCancel);
 
       setShowCancelModal(false);
       setRequestToCancel(null);
+      setCancellationReason('');
       loadRequests();
     } catch (error) {
       console.error('Error cancelling request:', error);
@@ -544,20 +554,74 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
         </div>
       )}
 
-      {/* Modal de Confirmação de Cancelamento */}
-      <ConfirmationModal
-        isOpen={showCancelModal}
-        onClose={() => {
-          setShowCancelModal(false);
-          setRequestToCancel(null);
-        }}
-        onConfirm={confirmCancelRequest}
-        title="Cancelar Chamado"
-        message="Tem certeza que deseja cancelar este chamado? Esta ação não pode ser desfeita."
-        confirmText="Sim, Cancelar"
-        cancelText="Não, Manter"
-        type="danger"
-      />
+      {/* Modal de Cancelamento com Motivo */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Cancelar Chamado</h3>
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setRequestToCancel(null);
+                  setCancellationReason('');
+                }}
+                className="p-1 hover:bg-gray-100 rounded-full transition"
+              >
+                <X size={24} className="text-gray-600" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                <div className="flex items-start">
+                  <AlertCircle className="w-5 h-5 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800 mb-1">Atenção</p>
+                    <p className="text-sm text-red-700">Esta ação não pode ser desfeita. Por favor, informe o motivo do cancelamento.</p>
+                  </div>
+                </div>
+              </div>
+
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Motivo do Cancelamento *
+              </label>
+              <textarea
+                value={cancellationReason}
+                onChange={(e) => setCancellationReason(e.target.value)}
+                placeholder="Ex: Encontrei outro profissional, Resolvi de outra forma, Mudei de ideia..."
+                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all resize-none"
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {cancellationReason.length}/500 caracteres
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                onClick={confirmCancelRequest}
+                disabled={!cancellationReason.trim()}
+                className="w-full bg-red-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-red-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-red-600"
+              >
+                Confirmar Cancelamento
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setRequestToCancel(null);
+                  setCancellationReason('');
+                }}
+                className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Voltar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
