@@ -15,6 +15,7 @@ export function ClientModule() {
     id: string;
     name: string;
   } | null>(null);
+  const [selectedChatProfessionalId, setSelectedChatProfessionalId] = useState<string | null>(null);
 
   const navItems = [
     { icon: Users, label: 'Profissionais', value: 'professionals' },
@@ -37,6 +38,11 @@ export function ClientModule() {
     setActiveTab('requests');
   };
 
+  const handleOpenChat = (professionalId: string) => {
+    setSelectedChatProfessionalId(professionalId);
+    setActiveTab('conversations');
+  };
+
   const renderContent = () => {
     if (selectedProfessional) {
       return (
@@ -53,9 +59,9 @@ export function ClientModule() {
       case 'professionals':
         return <ProfessionalList onRequestService={handleRequestService} />;
       case 'requests':
-        return <MyRequests />;
+        return <MyRequests onOpenChat={handleOpenChat} />;
       case 'conversations':
-        return <Messages />;
+        return <Messages selectedProfessionalId={selectedChatProfessionalId} />;
       case 'gps':
         return <GPSTracking />;
       case 'history':

@@ -13,7 +13,11 @@ interface Conversation {
   unread: boolean;
 }
 
-export default function Messages() {
+interface MessagesProps {
+  selectedProfessionalId?: string | null;
+}
+
+export default function Messages({ selectedProfessionalId }: MessagesProps) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -24,6 +28,17 @@ export default function Messages() {
     const interval = setInterval(loadConversations, 5000);
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    if (selectedProfessionalId && conversations.length > 0) {
+      const conv = conversations.find(c => c.professional_id === selectedProfessionalId);
+      if (conv) {
+        setSelectedConversation(conv);
+      } else {
+        createConversationWithProfessional(selectedProfessionalId);
+      }
+    }
+  }, [selectedProfessionalId, conversations]);
 
   const loadConversations = async () => {
     if (!user?.id) return;
@@ -74,6 +89,55 @@ export default function Messages() {
 
     setConversations(formatted);
     setLoading(false);
+  };
+
+  const createConversationWithProfessional = async (professionalId: string) => {
+    if (!user?.id) return;
+
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', professionalId)
+      .maybeSingle();
+
+    const { data: existingConv } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('client_id', user.id)
+      .eq('professional_id', professionalId)
+      .maybeSingle();
+
+    if (existingConv) {
+      setSelectedConversation({
+        id: existingConv.id,
+        professional_id: existingConv.professional_id,
+        professional_name: profileData?.full_name || 'Profissional',
+        last_message: 'Sem mensagens',
+        last_message_time: existingConv.created_at,
+        unread: false,
+      });
+    } else {
+      const { data: newConv } = await supabase
+        .from('conversations')
+        .insert({
+          client_id: user.id,
+          professional_id: professionalId,
+        })
+        .select()
+        .single();
+
+      if (newConv) {
+        setSelectedConversation({
+          id: newConv.id,
+          professional_id: newConv.professional_id,
+          professional_name: profileData?.full_name || 'Profissional',
+          last_message: 'Sem mensagens',
+          last_message_time: newConv.created_at,
+          unread: false,
+        });
+        loadConversations();
+      }
+    }
   };
 
   if (selectedConversation) {

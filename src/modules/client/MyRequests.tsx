@@ -18,7 +18,11 @@ interface Request {
   payment_completed: boolean;
 }
 
-export function MyRequests() {
+interface MyRequestsProps {
+  onOpenChat: (professionalId: string) => void;
+}
+
+export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [trackingRequestId, setTrackingRequestId] = useState<string | null>(null);
@@ -86,28 +90,42 @@ export function MyRequests() {
     if (requestsData && requestsData.length > 0) {
       const professionalIds = requestsData.map((r: any) => r.professional_id);
 
+      const { data: servicesData } = await supabase
+        .from('professional_services')
+        .select('user_id, description')
+        .in('user_id', professionalIds);
+
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('user_id, full_name, bio')
         .in('user_id', professionalIds);
 
+      const servicesMap = new Map(
+        servicesData?.map((s: any) => [s.user_id, s.description]) || []
+      );
+
       const profilesMap = new Map(
         profilesData?.map((p: any) => [p.user_id, { name: p.full_name, bio: p.bio }]) || []
       );
 
-      const formatted = requestsData.map((r: any) => ({
-        id: r.id,
-        professional_id: r.professional_id,
-        professional_name: profilesMap.get(r.professional_id)?.name || 'Profissional',
-        professional_description: profilesMap.get(r.professional_id)?.bio || 'Sem descrição',
-        service_type: r.service_type,
-        status: r.status,
-        created_at: r.created_at,
-        notes: r.notes,
-        is_home_service: r.is_home_service || false,
-        payment_link: r.payment_link,
-        payment_completed: r.payment_completed || false,
-      }));
+      const formatted = requestsData.map((r: any) => {
+        const profile = profilesMap.get(r.professional_id);
+        const serviceDesc = servicesMap.get(r.professional_id);
+
+        return {
+          id: r.id,
+          professional_id: r.professional_id,
+          professional_name: profile?.name || 'Profissional',
+          professional_description: serviceDesc || profile?.bio || 'Profissional qualificado pronto para atender você',
+          service_type: r.service_type,
+          status: r.status,
+          created_at: r.created_at,
+          notes: r.notes,
+          is_home_service: r.is_home_service || false,
+          payment_link: r.payment_link,
+          payment_completed: r.payment_completed || false,
+        };
+      });
 
       setRequests(formatted);
 
@@ -229,8 +247,7 @@ export function MyRequests() {
   };
 
   const openChat = (professionalId: string) => {
-    // Lógica para abrir chat será implementada
-    alert('Funcionalidade de chat em desenvolvimento');
+    onOpenChat(professionalId);
   };
 
   if (trackingRequestId) {
