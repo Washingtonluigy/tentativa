@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { ArrowLeft, Upload, X, User } from 'lucide-react';
+import { ArrowLeft, Upload, X, User, MessageCircle, Phone } from 'lucide-react';
 
 interface ProfessionalApplicationProps {
   onBack: () => void;
@@ -367,6 +367,22 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
             />
           </div>
 
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <MessageCircle className="h-5 w-5 text-blue-500" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-blue-800">
+                  Informação Importante
+                </p>
+                <p className="mt-1 text-sm text-blue-700">
+                  Para profissionais aprovados haverá uma taxa de adesão para expor seus serviços na plataforma - confira com nosso SAC
+                </p>
+              </div>
+            </div>
+          </div>
+
           <button
             type="submit"
             disabled={loading || uploading}
@@ -375,6 +391,19 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
             {uploading ? 'Fazendo upload da foto...' : loading ? 'Enviando...' : 'Enviar Solicitação'}
           </button>
         </form>
+
+        <a
+          href="https://wa.me/5565999072070"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg hover:bg-green-600 transition-all duration-300 hover:scale-110 z-50 flex items-center gap-2 group"
+          title="Fale com nosso SAC pelo WhatsApp"
+        >
+          <Phone className="w-6 h-6" />
+          <span className="hidden group-hover:inline-block text-sm font-medium whitespace-nowrap">
+            Falar com SAC
+          </span>
+        </a>
       </div>
     </div>
   );
