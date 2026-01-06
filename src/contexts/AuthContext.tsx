@@ -14,10 +14,22 @@ interface AuthContextType {
     cep: string,
     state: string,
     city: string,
-    address: string
+    address: string,
+    securityQuestion1: string,
+    securityAnswer1: string,
+    securityQuestion2: string,
+    securityAnswer2: string,
+    securityQuestion3: string,
+    securityAnswer3: string
   ) => Promise<{ error: string | null }>;
   logout: () => void;
   loading: boolean;
+  getSecurityQuestions: (email: string) => Promise<{ questions: string[] | null; error: string | null }>;
+  resetPassword: (
+    email: string,
+    securityAnswers: { answer1: string; answer2: string; answer3: string },
+    newPassword: string
+  ) => Promise<{ success: boolean; error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,7 +62,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     cep: string,
     state: string,
     city: string,
-    address: string
+    address: string,
+    securityQuestion1: string,
+    securityAnswer1: string,
+    securityQuestion2: string,
+    securityAnswer2: string,
+    securityQuestion3: string,
+    securityAnswer3: string
   ) => {
     const { user: registeredUser, error } = await authService.register(
       email,
@@ -62,7 +80,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cep,
       state,
       city,
-      address
+      address,
+      securityQuestion1,
+      securityAnswer1,
+      securityQuestion2,
+      securityAnswer2,
+      securityQuestion3,
+      securityAnswer3
     );
     if (registeredUser) {
       setUser(registeredUser);
@@ -75,8 +99,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const getSecurityQuestions = async (email: string) => {
+    return await authService.getSecurityQuestions(email);
+  };
+
+  const resetPassword = async (
+    email: string,
+    securityAnswers: { answer1: string; answer2: string; answer3: string },
+    newPassword: string
+  ) => {
+    return await authService.resetPassword(email, securityAnswers, newPassword);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, getSecurityQuestions, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

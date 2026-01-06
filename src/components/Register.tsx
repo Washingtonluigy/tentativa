@@ -20,7 +20,24 @@ export function Register({ onLoginClick }: RegisterProps) {
     email: '',
     password: '',
     confirmPassword: '',
+    securityQuestion1: '',
+    securityAnswer1: '',
+    securityQuestion2: '',
+    securityAnswer2: '',
+    securityQuestion3: '',
+    securityAnswer3: '',
   });
+
+  const securityQuestions = [
+    'Qual o nome do seu primeiro animal de estimação?',
+    'Qual o nome de solteira da sua mãe?',
+    'Em qual cidade você nasceu?',
+    'Qual o nome da sua escola primária?',
+    'Qual sua comida favorita?',
+    'Qual o nome do seu primeiro professor?',
+    'Qual sua cor favorita?',
+    'Qual o modelo do seu primeiro carro?'
+  ];
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -41,6 +58,20 @@ export function Register({ onLoginClick }: RegisterProps) {
       return;
     }
 
+    if (!formData.securityQuestion1 || !formData.securityAnswer1 ||
+        !formData.securityQuestion2 || !formData.securityAnswer2 ||
+        !formData.securityQuestion3 || !formData.securityAnswer3) {
+      setError('Você deve responder todas as perguntas de segurança');
+      return;
+    }
+
+    if (formData.securityQuestion1 === formData.securityQuestion2 ||
+        formData.securityQuestion1 === formData.securityQuestion3 ||
+        formData.securityQuestion2 === formData.securityQuestion3) {
+      setError('Você deve escolher perguntas diferentes');
+      return;
+    }
+
     setLoading(true);
 
     const { error: registerError } = await register(
@@ -53,7 +84,13 @@ export function Register({ onLoginClick }: RegisterProps) {
       formData.cep,
       formData.state,
       formData.city,
-      formData.address
+      formData.address,
+      formData.securityQuestion1,
+      formData.securityAnswer1,
+      formData.securityQuestion2,
+      formData.securityAnswer2,
+      formData.securityQuestion3,
+      formData.securityAnswer3
     );
 
     if (registerError) {
@@ -63,7 +100,7 @@ export function Register({ onLoginClick }: RegisterProps) {
     setLoading(false);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -279,6 +316,98 @@ export function Register({ onLoginClick }: RegisterProps) {
                   <Eye className="w-5 h-5" />
                 )}
               </button>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t-2 border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              Perguntas de Segurança
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Escolha 3 perguntas diferentes para recuperar sua senha caso necessário
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Pergunta 1
+                </label>
+                <select
+                  name="securityQuestion1"
+                  value={formData.securityQuestion1}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                  required
+                >
+                  <option value="">Selecione uma pergunta</option>
+                  {securityQuestions.map((question, index) => (
+                    <option key={index} value={question}>{question}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  name="securityAnswer1"
+                  value={formData.securityAnswer1}
+                  onChange={handleChange}
+                  placeholder="Sua resposta"
+                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Pergunta 2
+                </label>
+                <select
+                  name="securityQuestion2"
+                  value={formData.securityQuestion2}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                  required
+                >
+                  <option value="">Selecione uma pergunta</option>
+                  {securityQuestions.map((question, index) => (
+                    <option key={index} value={question}>{question}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  name="securityAnswer2"
+                  value={formData.securityAnswer2}
+                  onChange={handleChange}
+                  placeholder="Sua resposta"
+                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all mt-2"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Pergunta 3
+                </label>
+                <select
+                  name="securityQuestion3"
+                  value={formData.securityQuestion3}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                  required
+                >
+                  <option value="">Selecione uma pergunta</option>
+                  {securityQuestions.map((question, index) => (
+                    <option key={index} value={question}>{question}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  name="securityAnswer3"
+                  value={formData.securityAnswer3}
+                  onChange={handleChange}
+                  placeholder="Sua resposta"
+                  className="w-full px-4 py-3 text-base border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all mt-2"
+                  required
+                />
+              </div>
             </div>
           </div>
 

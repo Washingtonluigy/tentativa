@@ -66,12 +66,30 @@ export const authService = {
     cep: string,
     state: string,
     city: string,
-    address: string
+    address: string,
+    securityQuestion1: string,
+    securityAnswer1: string,
+    securityQuestion2: string,
+    securityAnswer2: string,
+    securityQuestion3: string,
+    securityAnswer3: string
   ): Promise<AuthResponse> {
     try {
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .insert([{ email, password_hash: password, role: 'client', state, city }])
+        .insert([{
+          email,
+          password_hash: password,
+          role: 'client',
+          state,
+          city,
+          security_question_1: securityQuestion1,
+          security_answer_1: securityAnswer1.toLowerCase().trim(),
+          security_question_2: securityQuestion2,
+          security_answer_2: securityAnswer2.toLowerCase().trim(),
+          security_question_3: securityQuestion3,
+          security_answer_3: securityAnswer3.toLowerCase().trim()
+        }])
         .select()
         .single();
 
@@ -102,6 +120,72 @@ export const authService = {
       return { user, error: null };
     } catch (error) {
       return { user: null, error: 'Erro ao criar conta' };
+    }
+  },
+
+  async resetPassword(
+    email: string,
+    securityAnswers: { answer1: string; answer2: string; answer3: string },
+    newPassword: string
+  ): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, security_question_1, security_answer_1, security_question_2, security_answer_2, security_question_3, security_answer_3')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error || !data) {
+        return { success: false, error: 'Email não encontrado' };
+      }
+
+      const answer1Match = data.security_answer_1 === securityAnswers.answer1.toLowerCase().trim();
+      const answer2Match = data.security_answer_2 === securityAnswers.answer2.toLowerCase().trim();
+      const answer3Match = data.security_answer_3 === securityAnswers.answer3.toLowerCase().trim();
+
+      const correctAnswers = [answer1Match, answer2Match, answer3Match].filter(Boolean).length;
+
+      if (correctAnswers < 2) {
+        return { success: false, error: 'Respostas incorretas. Você precisa acertar pelo menos 2 de 3 perguntas' };
+      }
+
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password_hash: newPassword })
+        .eq('id', data.id);
+
+      if (updateError) {
+        return { success: false, error: 'Erro ao atualizar senha' };
+      }
+
+      return { success: true, error: null };
+    } catch (error) {
+      return { success: false, error: 'Erro ao redefinir senha' };
+    }
+  },
+
+  async getSecurityQuestions(email: string): Promise<{ questions: string[] | null; error: string | null }> {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('security_question_1, security_question_2, security_question_3')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (error || !data) {
+        return { questions: null, error: 'Email não encontrado' };
+      }
+
+      return {
+        questions: [
+          data.security_question_1,
+          data.security_question_2,
+          data.security_question_3
+        ],
+        error: null
+      };
+    } catch (error) {
+      return { questions: null, error: 'Erro ao buscar perguntas' };
     }
   },
 

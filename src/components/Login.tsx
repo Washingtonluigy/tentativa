@@ -6,9 +6,10 @@ import logo from '../assets/Design sem nome (1) copy.png';
 interface LoginProps {
   onRegisterClick: () => void;
   onProfessionalClick: () => void;
+  onForgotPasswordClick: () => void;
 }
 
-export function Login({ onRegisterClick, onProfessionalClick }: LoginProps) {
+export function Login({ onRegisterClick, onProfessionalClick, onForgotPasswordClick }: LoginProps) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,6 +96,16 @@ export function Login({ onRegisterClick, onProfessionalClick }: LoginProps) {
                 )}
               </button>
             </div>
+          </div>
+
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={onForgotPasswordClick}
+              className="text-sm text-purple-600 hover:text-purple-700 font-semibold transition-colors underline-offset-4 hover:underline"
+            >
+              Esqueci minha senha
+            </button>
           </div>
 
           <button
