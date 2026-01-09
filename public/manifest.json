@@ -21,8 +21,8 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/logo_amah_(1).png",
-      "sizes": "500x500",
+      "src": "/logo_amah.png",
+      "sizes": "1080x1080",
       "type": "image/png",
       "purpose": "any maskable"
     }

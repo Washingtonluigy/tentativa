@@ -1,10 +1,10 @@
-const CACHE_NAME = 'health-connect-v9';
+const CACHE_NAME = 'health-connect-v10';
 const urlsToCache = [
   '/',
   '/index.html',
   '/icon-192.png',
   '/icon-512.png',
-  '/logo_amah_(1).png'
+  '/logo_amah.png'
 ];
 
 self.addEventListener('install', (event) => {
