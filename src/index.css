@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  background-color: #ffffff;
+}
+
+html {
+  background-color: #ffffff;
+}
+
 @layer utilities {
   .animate-gradient-shift {
     background: linear-gradient(180deg, #f5f0e8 0%, #f5f0e8 30%, rgba(245, 240, 232, 0.7) 60%, rgba(245, 240, 232, 0.3) 85%, transparent 100%);
