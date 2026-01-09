@@ -7,6 +7,7 @@ import ProfessionalApplication from './components/ProfessionalApplication';
 import { AdminModule } from './modules/admin/AdminModule';
 import { ProfessionalModule } from './modules/professional/ProfessionalModule';
 import { ClientModule } from './modules/client/ClientModule';
+import { InstallPWAPrompt } from './components/InstallPWAPrompt';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -71,6 +72,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
+      <InstallPWAPrompt />
       <AppContent />
     </AuthProvider>
   );
