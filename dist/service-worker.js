@@ -1,4 +1,4 @@
-const CACHE_NAME = 'health-connect-v8';
+const CACHE_NAME = 'health-connect-v9';
 const urlsToCache = [
   '/',
   '/index.html',
