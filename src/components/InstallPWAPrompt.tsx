@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Share } from 'lucide-react';
+import logo from '../assets/Design sem nome (1).png';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -76,25 +77,25 @@ export function InstallPWAPrompt() {
         </button>
 
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Download className="w-10 h-10 text-white" />
+          <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg p-2">
+            <img src={logo} alt="Logo" className="w-full h-full object-contain" />
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2" translate="no">
             Instale nosso App
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-6" translate="no">
             Tenha acesso rápido e offline aos nossos serviços
           </p>
 
           {isIOS ? (
             <div className="text-left space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-3 flex items-center">
+                <h3 className="font-semibold text-blue-900 mb-3 flex items-center" translate="no">
                   <Share className="w-5 h-5 mr-2" />
                   Como instalar no iOS:
                 </h3>
-                <ol className="space-y-2 text-sm text-blue-800">
+                <ol className="space-y-2 text-sm text-blue-800" translate="no">
                   <li className="flex items-start">
                     <span className="font-bold mr-2">1.</span>
                     <span>Toque no botão de <strong>Compartilhar</strong> <Share className="w-4 h-4 inline" /> na barra inferior do Safari</span>
@@ -111,7 +112,8 @@ export function InstallPWAPrompt() {
               </div>
               <button
                 onClick={handleClose}
-                className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-cyan-600 transition-all duration-200 shadow-md"
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md"
+                translate="no"
               >
                 Entendi!
               </button>
@@ -121,19 +123,21 @@ export function InstallPWAPrompt() {
               {deferredPrompt ? (
                 <button
                   onClick={handleInstallClick}
-                  className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 text-white py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-cyan-600 transition-all duration-200 shadow-md flex items-center justify-center space-x-2"
+                  className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md flex items-center justify-center space-x-2"
+                  translate="no"
                 >
                   <Download className="w-5 h-5" />
                   <span>Instalar Agora</span>
                 </button>
               ) : (
-                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg" translate="no">
                   Para instalar, use o menu do navegador e selecione "Instalar aplicativo" ou "Adicionar à tela inicial"
                 </div>
               )}
               <button
                 onClick={handleClose}
                 className="w-full text-gray-600 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                translate="no"
               >
                 Agora não
               </button>
@@ -142,13 +146,13 @@ export function InstallPWAPrompt() {
         </div>
 
         <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="flex items-center justify-center space-x-6 text-sm text-gray-500">
+          <div className="flex items-center justify-center space-x-6 text-sm text-gray-500" translate="no">
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
               <span>Acesso rápido</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
               <span>Funciona offline</span>
             </div>
           </div>
