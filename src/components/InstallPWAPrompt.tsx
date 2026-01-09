@@ -77,7 +77,7 @@ export function InstallPWAPrompt() {
 
         <div className="text-center">
           <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg p-2">
-            <img src="/logo_amah_(1).png" alt="Logo AmaH" className="w-full h-full object-contain" />
+            <img src="/logo_amah.png" alt="Logo AmaH" className="w-full h-full object-contain" />
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-2" translate="no">
