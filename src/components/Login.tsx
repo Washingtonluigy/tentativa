@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import logo from '../assets/Design sem nome (1) copy.png';
+import logo from '../assets/logo_amah.png';
 
 interface LoginProps {
   onRegisterClick: () => void;

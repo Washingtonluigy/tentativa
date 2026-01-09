@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import logo from '../assets/Design sem nome (1).png';
+import logo from '../assets/logo_amah.png';
 
 interface HeaderProps {
   title: string;
