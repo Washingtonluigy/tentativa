@@ -97,6 +97,7 @@ export function PlansManagement() {
     });
     setEditingId(plan.id);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
@@ -122,6 +123,7 @@ export function PlansManagement() {
               setShowForm(false);
               setEditingId(null);
               setFormData({ name: '', description: '', price: '', durationType: '' });
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="text-gray-600 hover:text-gray-800"
           >
@@ -207,7 +209,10 @@ export function PlansManagement() {
         <h2 className="text-2xl font-bold text-gray-800">Gestão de Planos e Preços</h2>
         {activeTab === 'plans' && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              setShowForm(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             className="bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-600 transition flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />

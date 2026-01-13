@@ -157,6 +157,7 @@ export function CategoryManagement() {
     setImagePreview(category.image_url || '');
     setEditingId(category.id);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: string) => {
@@ -190,6 +191,7 @@ export function CategoryManagement() {
               setFormData({ name: '', description: '', imageUrl: '' });
               setImageFile(null);
               setImagePreview('');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="text-gray-600 hover:text-gray-800"
           >
@@ -281,7 +283,10 @@ export function CategoryManagement() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Categorias</h2>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setShowForm(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
           className="bg-teal-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-teal-600 transition flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
