@@ -83,39 +83,42 @@ export default function PendingApplications() {
 
         const password = Math.random().toString(36).slice(-8) + 'A1!';
 
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: application.email,
-          password: password,
-          options: {
-            data: {
-              full_name: application.full_name,
-              role: 'professional'
-            }
-          }
-        });
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .insert([{
+            email: application.email,
+            password_hash: password,
+            role: 'professional',
+            city: application.city,
+            state: application.state,
+            regional_price_id: regionalPriceId
+          }])
+          .select()
+          .single();
 
-        if (authError) throw authError;
+        if (userError) throw userError;
 
-        if (authData.user) {
+        if (userData) {
           await supabase
-            .from('users')
-            .update({
-              city: application.city,
-              state: application.state,
-              regional_price_id: regionalPriceId
-            })
-            .eq('id', authData.user.id);
+            .from('profiles')
+            .insert([{
+              user_id: userData.id,
+              full_name: application.full_name,
+              phone: application.phone,
+              photo_url: application.photo_url
+            }]);
 
           await supabase
             .from('professionals')
             .insert([{
-              user_id: authData.user.id,
+              user_id: userData.id,
               profession: application.profession,
               registration_number: application.registration_number,
               experience_years: application.experience_years,
-              bio: application.professional_references,
-              photo_url: application.photo_url,
-              is_active: true
+              professional_references: application.professional_references,
+              description: application.professional_references,
+              minimum_price: 0,
+              status: 'active'
             }]);
         }
       }
