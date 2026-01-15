@@ -25,7 +25,56 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const resizeImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          if (!ctx) {
+            reject(new Error('Não foi possível processar a imagem'));
+            return;
+          }
+
+          const targetSize = 1080;
+          canvas.width = targetSize;
+          canvas.height = targetSize;
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, targetSize, targetSize);
+
+          const scale = Math.min(targetSize / img.width, targetSize / img.height);
+          const scaledWidth = img.width * scale;
+          const scaledHeight = img.height * scale;
+          const x = (targetSize - scaledWidth) / 2;
+          const y = (targetSize - scaledHeight) / 2;
+
+          ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+
+          canvas.toBlob((blob) => {
+            if (blob) {
+              const resizedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(resizedFile);
+            } else {
+              reject(new Error('Erro ao processar imagem'));
+            }
+          }, 'image/jpeg', 0.9);
+        };
+        img.onerror = () => reject(new Error('Erro ao carregar imagem'));
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
@@ -36,13 +85,20 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
         setError('A imagem deve ter no máximo 5MB');
         return;
       }
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      setError('');
+
+      try {
+        const resizedFile = await resizeImage(file);
+        setPhotoFile(resizedFile);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(resizedFile);
+        setError('');
+      } catch (err) {
+        setError('Erro ao processar a imagem');
+        console.error(err);
+      }
     }
   };
 
@@ -314,11 +370,11 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
             </p>
 
             {photoPreview ? (
-              <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 border-gray-200">
+              <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
                 <img
                   src={photoPreview}
                   alt="Preview"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
                 <button
                   type="button"
