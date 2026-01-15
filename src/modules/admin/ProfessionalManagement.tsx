@@ -211,6 +211,18 @@ export function ProfessionalManagement() {
         setNotificationMessage('Profissional atualizado com sucesso!');
         setShowNotification(true);
       } else {
+        const { data: existingUser } = await supabase
+          .from('users')
+          .select('id')
+          .eq('email', formData.email)
+          .maybeSingle();
+
+        if (existingUser) {
+          setNotificationMessage('Este email já está cadastrado no sistema');
+          setShowNotification(true);
+          return;
+        }
+
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([{
@@ -223,7 +235,11 @@ export function ProfessionalManagement() {
 
         if (userError) {
           console.error('Erro ao criar usuário:', userError);
-          setNotificationMessage('Erro ao criar usuário: ' + userError.message);
+          if (userError.message.includes('duplicate key') || userError.message.includes('unique constraint')) {
+            setNotificationMessage('Este email já está cadastrado no sistema');
+          } else {
+            setNotificationMessage('Erro ao criar usuário: ' + userError.message);
+          }
           setShowNotification(true);
           return;
         }
