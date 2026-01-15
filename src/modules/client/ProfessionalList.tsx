@@ -110,8 +110,23 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       .eq('id', professionalId)
       .maybeSingle();
 
-    // Verificar horário flexível primeiro
-    if (professionalData?.flexible_schedule_enabled) {
+    // Verificar horários específicos primeiro
+    const { data: availabilityData } = await supabase
+      .from('professional_availability')
+      .select('*')
+      .eq('professional_id', professionalId)
+      .eq('is_active', true);
+
+    const hasSpecificSchedule = availabilityData && availabilityData.length > 0;
+    const hasFlexibleSchedule = professionalData?.flexible_schedule_enabled;
+
+    // Se não tem nenhum horário cadastrado (nem flexível nem específico), está sempre disponível
+    if (!hasSpecificSchedule && !hasFlexibleSchedule) {
+      return { status: 'available' as const };
+    }
+
+    // Se tem horário flexível ativo, verificar
+    if (hasFlexibleSchedule) {
       const flexStart = professionalData.flexible_start_time || '08:00:00';
       const flexEnd = professionalData.flexible_end_time || '18:00:00';
 
@@ -127,14 +142,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       }
     }
 
-    // Verificar horários específicos
-    const { data: availabilityData } = await supabase
-      .from('professional_availability')
-      .select('*')
-      .eq('professional_id', professionalId)
-      .eq('is_active', true);
-
-    if (availabilityData && availabilityData.length > 0) {
+    // Se tem horários específicos, verificar
+    if (hasSpecificSchedule) {
       const todayAvailability = availabilityData.find(
         (slot: any) => slot.day_of_week === todayDayOfWeek &&
         slot.start_time <= currentTime &&
@@ -148,7 +157,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       }
     }
 
-    // Se não tem horários cadastrados, profissional está sempre disponível
+    // Fallback: disponível
     return { status: 'available' as const };
   };
 
