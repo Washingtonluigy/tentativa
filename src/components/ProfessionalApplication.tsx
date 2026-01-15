@@ -43,6 +43,9 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
           canvas.width = targetSize;
           canvas.height = targetSize;
 
+          console.log(`Canvas criado: ${canvas.width}x${canvas.height}`);
+          console.log(`Imagem original: ${img.width}x${img.height}`);
+
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(0, 0, targetSize, targetSize);
 
@@ -52,14 +55,20 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
           const x = (targetSize - scaledWidth) / 2;
           const y = (targetSize - scaledHeight) / 2;
 
+          console.log(`Escala: ${scale}`);
+          console.log(`Imagem escalonada: ${scaledWidth}x${scaledHeight}`);
+          console.log(`Posição: x=${x}, y=${y}`);
+
           ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
 
           canvas.toBlob((blob) => {
             if (blob) {
+              console.log(`Blob criado, tamanho: ${blob.size} bytes`);
               const resizedFile = new File([blob], file.name, {
                 type: 'image/jpeg',
                 lastModified: Date.now(),
               });
+              console.log(`Arquivo final criado: ${resizedFile.size} bytes`);
               resolve(resizedFile);
             } else {
               reject(new Error('Erro ao processar imagem'));
@@ -370,11 +379,11 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
             </p>
 
             {photoPreview ? (
-              <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
+              <div className="relative w-full max-w-md mx-auto aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-white">
                 <img
                   src={photoPreview}
                   alt="Preview"
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-cover"
                 />
                 <button
                   type="button"
@@ -386,6 +395,9 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
                 >
                   <X className="w-4 h-4" />
                 </button>
+                <div className="absolute bottom-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                  1080x1080
+                </div>
               </div>
             ) : (
               <label className="flex flex-col items-center justify-center w-full h-48 sm:h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
