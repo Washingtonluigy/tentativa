@@ -52,7 +52,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
       </div>
 
       <div className="absolute left-1/2 transform -translate-x-1/2">
-        <img src={logo} alt="AmaH" className="h-20 w-auto" />
+        <img src={logo} alt="AmaH" className="h-20 w-auto mix-blend-multiply" />
       </div>
 
       <button
