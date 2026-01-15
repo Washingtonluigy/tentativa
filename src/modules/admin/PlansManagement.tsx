@@ -11,6 +11,10 @@ interface Plan {
   description: string;
   price: number;
   duration_type: string;
+  hours?: number;
+  days?: number;
+  periods?: string[];
+  locations?: string[];
 }
 
 export function PlansManagement() {
@@ -26,6 +30,10 @@ export function PlansManagement() {
     description: '',
     price: '',
     durationType: '',
+    hours: '',
+    days: '',
+    periods: [] as string[],
+    locations: [] as string[],
   });
 
   useEffect(() => {
@@ -46,6 +54,8 @@ export function PlansManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const durationType = `${formData.hours}h/${formData.days}d`;
+
     if (editingId) {
       const { error } = await supabase
         .from('plans')
@@ -53,7 +63,11 @@ export function PlansManagement() {
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
-          duration_type: formData.durationType,
+          duration_type: durationType,
+          hours: formData.hours ? parseInt(formData.hours) : null,
+          days: formData.days ? parseInt(formData.days) : null,
+          periods: formData.periods,
+          locations: formData.locations,
         })
         .eq('id', editingId);
 
@@ -70,7 +84,11 @@ export function PlansManagement() {
           name: formData.name,
           description: formData.description,
           price: parseFloat(formData.price),
-          duration_type: formData.durationType,
+          duration_type: durationType,
+          hours: formData.hours ? parseInt(formData.hours) : null,
+          days: formData.days ? parseInt(formData.days) : null,
+          periods: formData.periods,
+          locations: formData.locations,
           created_by: user?.id
         }]);
 
@@ -82,18 +100,33 @@ export function PlansManagement() {
       }
     }
 
-    setFormData({ name: '', description: '', price: '', durationType: '' });
+    setFormData({ name: '', description: '', price: '', durationType: '', hours: '', days: '', periods: [], locations: [] });
     setEditingId(null);
     setShowForm(false);
     loadPlans();
   };
 
   const handleEdit = (plan: Plan) => {
+    let hours = plan.hours?.toString() || '';
+    let days = plan.days?.toString() || '';
+
+    if (!hours && !days && plan.duration_type) {
+      const match = plan.duration_type.match(/(\d+)h\/(\d+)d/);
+      if (match) {
+        hours = match[1];
+        days = match[2];
+      }
+    }
+
     setFormData({
       name: plan.name,
       description: plan.description,
       price: plan.price.toString(),
       durationType: plan.duration_type,
+      hours,
+      days,
+      periods: plan.periods || [],
+      locations: plan.locations || [],
     });
     setEditingId(plan.id);
     setShowForm(true);
@@ -122,7 +155,7 @@ export function PlansManagement() {
             onClick={() => {
               setShowForm(false);
               setEditingId(null);
-              setFormData({ name: '', description: '', price: '', durationType: '' });
+              setFormData({ name: '', description: '', price: '', durationType: '', hours: '', days: '', periods: [], locations: [] });
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className="text-gray-600 hover:text-gray-800"
@@ -178,18 +211,84 @@ export function PlansManagement() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de Duração
             </label>
-            <select
-              value={formData.durationType}
-              onChange={(e) => setFormData({ ...formData, durationType: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-              required
-            >
-              <option value="">Selecione</option>
-              <option value="hour">Por Hora</option>
-              <option value="session">Por Sessão</option>
-              <option value="monthly">Mensal</option>
-              <option value="package">Pacote</option>
-            </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Horas</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.hours}
+                  onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  placeholder="Ex: 8"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Dias</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.days}
+                  onChange={(e) => setFormData({ ...formData, days: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  placeholder="Ex: 5"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Período
+            </label>
+            <div className="space-y-2">
+              {['Manhã', 'Tarde', 'Noite'].map((period) => (
+                <label key={period} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.periods.includes(period.toLowerCase())}
+                    onChange={(e) => {
+                      const value = period.toLowerCase();
+                      if (e.target.checked) {
+                        setFormData({ ...formData, periods: [...formData.periods, value] });
+                      } else {
+                        setFormData({ ...formData, periods: formData.periods.filter(p => p !== value) });
+                      }
+                    }}
+                    className="w-4 h-4 text-teal-500 border-gray-300 rounded focus:ring-teal-500"
+                  />
+                  <span className="text-gray-700">{period}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Local
+            </label>
+            <div className="space-y-2">
+              {['Domiciliar', 'Hospital', 'Deslocamento'].map((location) => (
+                <label key={location} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.locations.includes(location.toLowerCase())}
+                    onChange={(e) => {
+                      const value = location.toLowerCase();
+                      if (e.target.checked) {
+                        setFormData({ ...formData, locations: [...formData.locations, value] });
+                      } else {
+                        setFormData({ ...formData, locations: formData.locations.filter(l => l !== value) });
+                      }
+                    }}
+                    className="w-4 h-4 text-teal-500 border-gray-300 rounded focus:ring-teal-500"
+                  />
+                  <span className="text-gray-700">{location}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <button
@@ -269,10 +368,28 @@ export function PlansManagement() {
                       <span className="text-2xl font-bold text-teal-600">
                         R$ {plan.price.toFixed(2)}
                       </span>
-                      <span className="text-sm text-gray-500 capitalize">
-                        {plan.duration_type}
-                      </span>
+                      {plan.hours && plan.days && (
+                        <span className="text-sm text-gray-500">
+                          {plan.hours}h por {plan.days} dias
+                        </span>
+                      )}
                     </div>
+                    {plan.periods && plan.periods.length > 0 && (
+                      <div className="mt-2">
+                        <span className="text-xs text-gray-500">Períodos: </span>
+                        <span className="text-xs text-gray-700 capitalize">
+                          {plan.periods.join(', ')}
+                        </span>
+                      </div>
+                    )}
+                    {plan.locations && plan.locations.length > 0 && (
+                      <div className="mt-1">
+                        <span className="text-xs text-gray-500">Locais: </span>
+                        <span className="text-xs text-gray-700 capitalize">
+                          {plan.locations.join(', ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
