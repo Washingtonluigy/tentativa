@@ -67,7 +67,13 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     if (selectedCategory) {
       loadProfessionals(selectedCategory);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, urgencyMode]);
+
+  useEffect(() => {
+    if (showAllByCity) {
+      loadAllProfessionalsByCity();
+    }
+  }, [urgencyMode]);
 
   const loadCategories = async () => {
     const { data } = await supabase
@@ -147,7 +153,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   };
 
   const loadProfessionals = async (categoryId: string) => {
-    const { data: profData, error } = await supabase
+    let query = supabase
       .from('professionals')
       .select(`
         *,
@@ -158,6 +164,12 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       `)
       .eq('category_id', categoryId)
       .eq('status', 'active');
+
+    if (urgencyMode) {
+      query = query.eq('accepts_urgent_requests', true);
+    }
+
+    const { data: profData, error } = await query;
 
     if (!profData) {
       console.error('Error loading professionals:', error);
@@ -210,7 +222,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     const profsByCategory: ProfessionalsByCategory[] = [];
 
     for (const category of categories) {
-      const { data: profData, error } = await supabase
+      let query = supabase
         .from('professionals')
         .select(`
           id,
@@ -222,6 +234,12 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         `)
         .eq('category_id', category.id)
         .eq('status', 'active');
+
+      if (urgencyMode) {
+        query = query.eq('accepts_urgent_requests', true);
+      }
+
+      const { data: profData, error } = await query;
 
       if (!profData) continue;
 
@@ -278,13 +296,6 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         professionals: cat.professionals.filter(p =>
           p.full_name.toLowerCase().includes(searchTerm.toLowerCase())
         )
-      })).filter(cat => cat.professionals.length > 0);
-    }
-
-    if (urgencyMode) {
-      filteredBySearch = filteredBySearch.map(cat => ({
-        ...cat,
-        professionals: cat.professionals.filter(p => p.availability_status === 'available')
       })).filter(cat => cat.professionals.length > 0);
     }
 
@@ -438,10 +449,6 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     let filteredProfessionals = professionals.filter(p =>
       p.full_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    if (urgencyMode) {
-      filteredProfessionals = filteredProfessionals.filter(p => p.availability_status === 'available');
-    }
 
     return (
       <div className="p-4 pb-20">

@@ -36,6 +36,7 @@ export function Schedule() {
   const [flexibleScheduleEnabled, setFlexibleScheduleEnabled] = useState(false);
   const [flexibleStartTime, setFlexibleStartTime] = useState('08:00');
   const [flexibleEndTime, setFlexibleEndTime] = useState('18:00');
+  const [acceptsUrgentRequests, setAcceptsUrgentRequests] = useState(false);
 
   useEffect(() => {
     loadProfessionalData();
@@ -53,7 +54,7 @@ export function Schedule() {
 
       const { data: profData, error } = await supabase
         .from('professionals')
-        .select('id, flexible_schedule_enabled, flexible_start_time, flexible_end_time')
+        .select('id, flexible_schedule_enabled, flexible_start_time, flexible_end_time, accepts_urgent_requests')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -70,6 +71,7 @@ export function Schedule() {
         setFlexibleScheduleEnabled(profData.flexible_schedule_enabled || false);
         setFlexibleStartTime(profData.flexible_start_time || '08:00');
         setFlexibleEndTime(profData.flexible_end_time || '18:00');
+        setAcceptsUrgentRequests(profData.accepts_urgent_requests || false);
         await loadAvailability(profData.id);
       } else {
         console.log('Schedule: Nenhum registro de profissional encontrado para este usuário');
@@ -83,6 +85,7 @@ export function Schedule() {
 
   const loadAvailability = async (profId: string) => {
     try {
+      console.log('Carregando horários para profissional:', profId);
       const { data, error } = await supabase
         .from('professional_availability')
         .select('*')
@@ -91,6 +94,7 @@ export function Schedule() {
         .order('start_time');
 
       if (error) throw error;
+      console.log('Horários carregados:', data);
       setAvailability(data || []);
     } catch (err) {
       console.error('Erro ao carregar disponibilidade:', err);
@@ -109,16 +113,17 @@ export function Schedule() {
         .update({
           flexible_schedule_enabled: flexibleScheduleEnabled,
           flexible_start_time: flexibleStartTime,
-          flexible_end_time: flexibleEndTime
+          flexible_end_time: flexibleEndTime,
+          accepts_urgent_requests: acceptsUrgentRequests
         })
         .eq('id', professionalId);
 
       if (error) throw error;
 
-      alert('Horário flexível salvo com sucesso!');
+      alert('Configurações salvas com sucesso!');
     } catch (err) {
-      console.error('Erro ao salvar horário flexível:', err);
-      alert('Erro ao salvar horário flexível. Tente novamente.');
+      console.error('Erro ao salvar configurações:', err);
+      alert('Erro ao salvar configurações. Tente novamente.');
     } finally {
       setSaving(false);
     }
@@ -129,7 +134,15 @@ export function Schedule() {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      console.log('Adicionando novo horário:', {
+        professional_id: professionalId,
+        day_of_week: newSlot.day_of_week,
+        start_time: newSlot.start_time,
+        end_time: newSlot.end_time,
+        is_active: true
+      });
+
+      const { data, error } = await supabase
         .from('professional_availability')
         .insert([{
           professional_id: professionalId,
@@ -137,10 +150,15 @@ export function Schedule() {
           start_time: newSlot.start_time,
           end_time: newSlot.end_time,
           is_active: true
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro no insert:', error);
+        throw error;
+      }
 
+      console.log('Horário adicionado com sucesso:', data);
       await loadAvailability(professionalId);
       setShowAddForm(false);
       setNewSlot({
@@ -148,9 +166,10 @@ export function Schedule() {
         start_time: '08:00',
         end_time: '17:00'
       });
-    } catch (err) {
+      alert('Horário adicionado com sucesso!');
+    } catch (err: any) {
       console.error('Erro ao adicionar horário:', err);
-      alert('Erro ao adicionar horário. Tente novamente.');
+      alert('Erro ao adicionar horário: ' + (err.message || 'Tente novamente.'));
     } finally {
       setSaving(false);
     }
@@ -195,6 +214,9 @@ export function Schedule() {
     return acc;
   }, {} as Record<number, AvailabilitySlot[]>);
 
+  console.log('Availability array:', availability);
+  console.log('Grouped availability:', groupedAvailability);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -231,6 +253,37 @@ export function Schedule() {
           <Plus className="w-5 h-5" />
           Adicionar
         </button>
+      </div>
+
+      {/* Atendimento Urgente */}
+      <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl shadow-sm p-6 mb-6 border-2 border-red-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 p-3 rounded-full">
+              <Clock className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Atendimento Urgente</h3>
+              <p className="text-sm text-gray-600">Aceite chamados urgentes dos clientes</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={acceptsUrgentRequests}
+              onChange={(e) => setAcceptsUrgentRequests(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+          </label>
+        </div>
+        <p className="mt-4 text-sm text-gray-700 bg-white p-3 rounded-lg">
+          {acceptsUrgentRequests ? (
+            <span className="text-green-700 font-medium">✅ Você aparecerá nas buscas de urgência dos clientes</span>
+          ) : (
+            <span className="text-gray-600">❌ Você não aparecerá nas buscas de urgência</span>
+          )}
+        </p>
       </div>
 
       {/* Horário de Trabalho Flexível */}
