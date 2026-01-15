@@ -108,12 +108,36 @@ export default function PendingApplications() {
               photo_url: application.photo_url
             }]);
 
+          let categoryId = null;
+          const { data: categoryData } = await supabase
+            .from('categories')
+            .select('id')
+            .ilike('name', application.profession)
+            .maybeSingle();
+
+          if (categoryData) {
+            categoryId = categoryData.id;
+          } else {
+            const { data: newCategory } = await supabase
+              .from('categories')
+              .insert([{
+                name: application.profession,
+                description: `Categoria criada automaticamente: ${application.profession}`,
+                active: true
+              }])
+              .select()
+              .single();
+
+            if (newCategory) {
+              categoryId = newCategory.id;
+            }
+          }
+
           await supabase
             .from('professionals')
             .insert([{
               user_id: userData.id,
-              profession: application.profession,
-              registration_number: application.registration_number,
+              category_id: categoryId,
               experience_years: application.experience_years,
               professional_references: application.professional_references,
               description: application.professional_references,
