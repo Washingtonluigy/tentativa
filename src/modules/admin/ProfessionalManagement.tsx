@@ -163,82 +163,137 @@ export function ProfessionalManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const photoUrl = await uploadPhoto();
+    try {
+      const photoUrl = await uploadPhoto();
 
-    if (editingId) {
-      const professional = professionals.find(p => p.id === editingId);
-      if (!professional) return;
+      if (editingId) {
+        const professional = professionals.find(p => p.id === editingId);
+        if (!professional) {
+          setNotificationMessage('Profissional não encontrado');
+          setShowNotification(true);
+          return;
+        }
 
-      await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.fullName,
-          phone: formData.phone,
-          ...(photoUrl && { photo_url: photoUrl })
-        })
-        .eq('user_id', professional.user_id);
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: formData.fullName,
+            phone: formData.phone,
+            ...(photoUrl && { photo_url: photoUrl })
+          })
+          .eq('user_id', professional.user_id);
 
-      await supabase
-        .from('professionals')
-        .update({
-          category_id: formData.categoryId,
-          experience_years: parseInt(formData.experienceYears),
-          professional_references: formData.references,
-          description: formData.description,
-          minimum_price: parseFloat(formData.minimumPrice) || 0,
-        })
-        .eq('id', editingId);
-    } else {
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .insert([{
-          email: formData.email,
-          password_hash: formData.password,
-          role: 'professional'
-        }])
-        .select()
-        .single();
+        if (profileError) {
+          console.error('Erro ao atualizar perfil:', profileError);
+          setNotificationMessage('Erro ao atualizar perfil: ' + profileError.message);
+          setShowNotification(true);
+          return;
+        }
 
-      if (userError || !userData) return;
+        const { error: profError } = await supabase
+          .from('professionals')
+          .update({
+            category_id: formData.categoryId,
+            experience_years: parseInt(formData.experienceYears),
+            professional_references: formData.references,
+            description: formData.description,
+            minimum_price: parseFloat(formData.minimumPrice) || 0,
+          })
+          .eq('id', editingId);
 
-      await supabase
-        .from('profiles')
-        .insert([{
-          user_id: userData.id,
-          full_name: formData.fullName,
-          phone: formData.phone,
-          photo_url: photoUrl
-        }]);
+        if (profError) {
+          console.error('Erro ao atualizar profissional:', profError);
+          setNotificationMessage('Erro ao atualizar profissional: ' + profError.message);
+          setShowNotification(true);
+          return;
+        }
 
-      await supabase
-        .from('professionals')
-        .insert([{
-          user_id: userData.id,
-          category_id: formData.categoryId,
-          experience_years: parseInt(formData.experienceYears),
-          professional_references: formData.references,
-          description: formData.description,
-          minimum_price: parseFloat(formData.minimumPrice) || 0,
-          status: 'active'
-        }]);
+        setNotificationMessage('Profissional atualizado com sucesso!');
+        setShowNotification(true);
+      } else {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .insert([{
+            email: formData.email,
+            password_hash: formData.password,
+            role: 'professional'
+          }])
+          .select()
+          .single();
+
+        if (userError) {
+          console.error('Erro ao criar usuário:', userError);
+          setNotificationMessage('Erro ao criar usuário: ' + userError.message);
+          setShowNotification(true);
+          return;
+        }
+
+        if (!userData) {
+          setNotificationMessage('Erro ao criar usuário');
+          setShowNotification(true);
+          return;
+        }
+
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            user_id: userData.id,
+            full_name: formData.fullName,
+            phone: formData.phone,
+            photo_url: photoUrl
+          }]);
+
+        if (profileError) {
+          console.error('Erro ao criar perfil:', profileError);
+          setNotificationMessage('Erro ao criar perfil: ' + profileError.message);
+          setShowNotification(true);
+          return;
+        }
+
+        const { error: profError } = await supabase
+          .from('professionals')
+          .insert([{
+            user_id: userData.id,
+            category_id: formData.categoryId,
+            experience_years: parseInt(formData.experienceYears),
+            professional_references: formData.references,
+            description: formData.description,
+            minimum_price: parseFloat(formData.minimumPrice) || 0,
+            status: 'active'
+          }]);
+
+        if (profError) {
+          console.error('Erro ao criar profissional:', profError);
+          setNotificationMessage('Erro ao criar profissional: ' + profError.message);
+          setShowNotification(true);
+          return;
+        }
+
+        setNotificationMessage('Profissional cadastrado com sucesso!');
+        setShowNotification(true);
+      }
+
+      setFormData({
+        fullName: '',
+        email: '',
+        password: '',
+        phone: '',
+        categoryId: '',
+        experienceYears: '',
+        references: '',
+        description: '',
+        minimumPrice: '',
+      });
+      setPhotoFile(null);
+      setPhotoPreview('');
+      setEditingId(null);
+      setShowForm(false);
+      loadProfessionals();
+    } catch (error: any) {
+      console.error('Erro no cadastro:', error);
+      setNotificationMessage('Erro ao salvar: ' + error.message);
+      setShowNotification(true);
     }
-
-    setFormData({
-      fullName: '',
-      email: '',
-      password: '',
-      phone: '',
-      categoryId: '',
-      experienceYears: '',
-      references: '',
-      description: '',
-      minimumPrice: '',
-    });
-    setPhotoFile(null);
-    setPhotoPreview('');
-    setEditingId(null);
-    setShowForm(false);
-    loadProfessionals();
   };
 
   const handleEdit = async (professional: Professional) => {
