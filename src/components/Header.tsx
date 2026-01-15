@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { LogOut, Menu } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import logo from '../assets/logo_amah.png';
+import logo from '../assets/logo_amah_(1).png';
 
 interface HeaderProps {
   title: string;
@@ -52,7 +52,7 @@ export function Header({ title, onMenuClick }: HeaderProps) {
       </div>
 
       <div className="absolute left-1/2 transform -translate-x-1/2">
-        <img src={logo} alt="AmaH" className="h-20 w-auto mix-blend-multiply" />
+        <img src={logo} alt="AmaH" className="h-20 w-auto" />
       </div>
 
       <button
