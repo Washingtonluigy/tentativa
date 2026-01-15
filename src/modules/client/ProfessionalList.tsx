@@ -17,7 +17,7 @@ interface Professional {
   experience_years: number;
   category_name: string;
   photo_url: string;
-  availability_status: 'available' | 'busy' | 'no_schedule';
+  availability_status: 'available' | 'busy';
   next_available?: string;
 }
 
@@ -116,6 +116,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
 
       if (currentTimeNormalized >= flexStartNormalized && currentTimeNormalized <= flexEndNormalized) {
         return { status: 'available' as const };
+      } else {
+        return { status: 'busy' as const };
       }
     }
 
@@ -135,10 +137,13 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
 
       if (todayAvailability) {
         return { status: 'available' as const };
+      } else {
+        return { status: 'busy' as const };
       }
     }
 
-    return { status: 'no_schedule' as const };
+    // Se não tem horários cadastrados, profissional está sempre disponível
+    return { status: 'available' as const };
   };
 
   const loadProfessionals = async (categoryId: string) => {
@@ -406,9 +411,9 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                         </div>
                       ) : (
                         <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-amber-600 text-sm font-medium">
-                            <Calendar className="w-4 h-4" />
-                            <span>Indisponível no momento</span>
+                          <div className="flex items-center gap-2 text-orange-600 text-sm font-medium bg-orange-50 px-3 py-2 rounded-lg">
+                            <AlertCircle className="w-4 h-4" />
+                            <span>Em atendimento ou fora do horário</span>
                           </div>
                           <button
                             onClick={() => onRequestService(professional.user_id, professional.full_name)}
@@ -544,30 +549,17 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                     Abrir Chamado
                   </button>
                 </div>
-              ) : professional.availability_status === 'busy' ? (
+              ) : (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-orange-600 text-sm font-medium bg-orange-50 px-3 py-2 rounded-lg">
                     <AlertCircle className="w-4 h-4" />
-                    <span>Em atendimento - Aguarde</span>
+                    <span>Em atendimento ou fora do horário</span>
                   </div>
                   <button
-                    disabled
-                    className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
+                    onClick={() => onRequestService(professional.user_id, professional.full_name)}
+                    className="w-full bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition"
                   >
-                    Indisponível
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-red-600 text-sm font-medium bg-red-50 px-3 py-2 rounded-lg">
-                    <Calendar className="w-4 h-4" />
-                    <span>Agenda lotada - Aguarde</span>
-                  </div>
-                  <button
-                    disabled
-                    className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed"
-                  >
-                    Indisponível
+                    Agendar Atendimento
                   </button>
                 </div>
               )}
