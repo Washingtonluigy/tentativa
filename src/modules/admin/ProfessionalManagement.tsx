@@ -326,7 +326,7 @@ export function ProfessionalManagement() {
             </p>
 
             {photoPreview ? (
-              <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-gray-200">
+              <div className="relative w-full aspect-square max-w-md mx-auto rounded-lg overflow-hidden border-2 border-gray-200">
                 <img
                   src={photoPreview}
                   alt="Preview"
@@ -344,16 +344,17 @@ export function ProfessionalManagement() {
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-teal-500 transition">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+              <label className="flex flex-col items-center justify-center w-full aspect-square max-w-md mx-auto border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-teal-500 transition">
+                <div className="flex flex-col items-center justify-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3">
                     <User className="w-8 h-8 text-gray-400" />
                   </div>
                   <Upload className="w-8 h-8 text-gray-400 mb-3" />
-                  <p className="mb-2 text-sm text-gray-500">
+                  <p className="mb-2 text-sm text-gray-500 text-center px-4">
                     <span className="font-semibold">Clique para adicionar foto</span>
                   </p>
-                  <p className="text-xs text-gray-500">PNG, JPG ou WEBP (MAX. 5MB)</p>
+                  <p className="text-xs text-gray-500 text-center px-4">Formato quadrado 1:1 (1080x1080px recomendado)</p>
+                  <p className="text-xs text-gray-400 text-center px-4 mt-1">PNG, JPG ou WEBP (MAX. 5MB)</p>
                 </div>
                 <input
                   type="file"
