@@ -98,8 +98,19 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
       try {
         const resizedFile = await resizeImage(file);
         setPhotoFile(resizedFile);
+
         const reader = new FileReader();
         reader.onloadend = () => {
+          const img = new Image();
+          img.onload = () => {
+            console.log(`Preview carregado - Dimensões: ${img.width}x${img.height}`);
+            if (img.width === 1080 && img.height === 1080) {
+              console.log('✓ Imagem redimensionada corretamente para 1080x1080!');
+            } else {
+              console.warn(`⚠ Atenção: Imagem está em ${img.width}x${img.height}, esperado 1080x1080`);
+            }
+          };
+          img.src = reader.result as string;
           setPhotoPreview(reader.result as string);
         };
         reader.readAsDataURL(resizedFile);
@@ -400,8 +411,8 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
                 </div>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-48 sm:h-64 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
-                <div className="flex flex-col items-center justify-center pt-4 pb-5 sm:pt-5 sm:pb-6">
+              <label className="flex flex-col items-center justify-center w-full max-w-md mx-auto aspect-square border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition">
+                <div className="flex flex-col items-center justify-center">
                   <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mb-2 sm:mb-3">
                     <User className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
                   </div>
@@ -410,6 +421,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
                     <span className="font-semibold">Clique para adicionar sua foto</span>
                   </p>
                   <p className="text-[10px] sm:text-xs text-gray-500">PNG, JPG ou WEBP (MAX. 5MB)</p>
+                  <p className="text-[10px] sm:text-xs text-blue-600 font-medium mt-2">Formato: 1080x1080 (quadrado)</p>
                 </div>
                 <input
                   type="file"
