@@ -164,8 +164,12 @@ export function ProfessionalManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    console.log('=== INICIANDO CADASTRO ===');
+    console.log('Dados do formulário:', formData);
+
     try {
       const photoUrl = await uploadPhoto();
+      console.log('URL da foto:', photoUrl);
 
       if (editingId) {
         const professional = professionals.find(p => p.id === editingId);
@@ -224,6 +228,7 @@ export function ProfessionalManagement() {
           return;
         }
 
+        console.log('Criando usuário...');
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([{
@@ -233,6 +238,8 @@ export function ProfessionalManagement() {
           }])
           .select()
           .single();
+
+        console.log('Resultado criação usuário:', { userData, userError });
 
         if (userError) {
           console.error('Erro ao criar usuário:', userError);
@@ -251,6 +258,7 @@ export function ProfessionalManagement() {
           return;
         }
 
+        console.log('Criando perfil...');
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([{
@@ -260,6 +268,8 @@ export function ProfessionalManagement() {
             photo_url: photoUrl
           }]);
 
+        console.log('Resultado criação perfil:', { profileError });
+
         if (profileError) {
           console.error('Erro ao criar perfil:', profileError);
           setNotificationMessage('Erro ao criar perfil: ' + profileError.message);
@@ -267,6 +277,7 @@ export function ProfessionalManagement() {
           return;
         }
 
+        console.log('Criando profissional...');
         const { error: profError } = await supabase
           .from('professionals')
           .insert([{
@@ -279,6 +290,8 @@ export function ProfessionalManagement() {
             status: 'active'
           }]);
 
+        console.log('Resultado criação profissional:', { profError });
+
         if (profError) {
           console.error('Erro ao criar profissional:', profError);
           setNotificationMessage('Erro ao criar profissional: ' + profError.message);
@@ -286,9 +299,12 @@ export function ProfessionalManagement() {
           return;
         }
 
+        console.log('=== CADASTRO CONCLUÍDO COM SUCESSO ===');
         setNotificationMessage('Profissional cadastrado com sucesso!');
         setShowNotification(true);
       }
+
+      await loadProfessionals();
 
       setFormData({
         fullName: '',
@@ -304,9 +320,11 @@ export function ProfessionalManagement() {
       setPhotoFile(null);
       setPhotoPreview('');
       setEditingId(null);
-      setShowForm(false);
       setShowPassword(false);
-      loadProfessionals();
+
+      setTimeout(() => {
+        setShowForm(false);
+      }, 100);
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
       setNotificationMessage('Erro ao salvar: ' + error.message);
