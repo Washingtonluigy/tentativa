@@ -361,7 +361,7 @@ export function ServiceManagement() {
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Meus Serviços</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Valor mínimo permitido: R$ {minimumPrice.toFixed(2)}
+            Valores mínimos: Mensagem R$ {minimumPrices.message.toFixed(2)} | Vídeo R$ {minimumPrices.video.toFixed(2)} | Domiciliar R$ {minimumPrices.home.toFixed(2)}
           </p>
         </div>
         <button
