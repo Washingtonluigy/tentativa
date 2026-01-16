@@ -681,6 +681,34 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         </div>
 
       <div className="px-4 py-2 space-y-4">
+        {/* Botão de Urgência - Sempre visível */}
+        <button
+          onClick={() => setShowUrgencyTypeModal(true)}
+          className={`relative w-full h-28 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group ${
+            urgencyMode
+              ? 'bg-gradient-to-r from-red-600 to-red-500'
+              : 'bg-gradient-to-r from-red-500 to-orange-500'
+          }`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-red-700/20 to-transparent group-hover:from-red-800/30 transition-all duration-300"></div>
+
+          <div className="relative h-full flex items-center justify-center gap-3 p-6">
+            <AlertCircle className="w-10 h-10 text-white drop-shadow-lg animate-pulse" />
+            <div className="text-left">
+              <h3 className="font-bold text-white text-2xl mb-1 drop-shadow-lg">
+                {urgencyMode && urgencyType ? (
+                  urgencyType === 'message' ? 'Urgência: Mensagem' :
+                  urgencyType === 'video' ? 'Urgência: Vídeo' :
+                  'Urgência: Domiciliar'
+                ) : 'Atendimento Urgente'}
+              </h3>
+              <p className="text-white/95 text-sm font-medium drop-shadow">
+                {urgencyMode ? 'Modo urgência ativado - Clique para alterar' : 'Encontre profissionais disponíveis agora'}
+              </p>
+            </div>
+          </div>
+        </button>
+
         <button
           onClick={handleMyCityClick}
           className="relative w-full h-32 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group bg-gradient-to-r from-teal-500 to-teal-600"

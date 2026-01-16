@@ -19,7 +19,11 @@ export function ServiceManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [minimumPrice, setMinimumPrice] = useState<number>(0);
+  const [minimumPrices, setMinimumPrices] = useState({
+    message: 0,
+    video: 0,
+    home: 0,
+  });
   const [formData, setFormData] = useState({
     serviceName: '',
     description: '',
@@ -57,16 +61,22 @@ export function ServiceManagement() {
           city,
           state,
           regional_minimum_prices (
-            minimum_price
+            minimum_price_message,
+            minimum_price_video,
+            minimum_price_home
           )
         `)
         .eq('id', user.id)
         .maybeSingle();
 
       if (userData?.regional_minimum_prices) {
-        setMinimumPrice(userData.regional_minimum_prices.minimum_price || 0);
+        setMinimumPrices({
+          message: userData.regional_minimum_prices.minimum_price_message || 0,
+          video: userData.regional_minimum_prices.minimum_price_video || 0,
+          home: userData.regional_minimum_prices.minimum_price_home || 0,
+        });
       } else {
-        setMinimumPrice(0);
+        setMinimumPrices({ message: 0, video: 0, home: 0 });
       }
     }
   };
@@ -86,20 +96,33 @@ export function ServiceManagement() {
   };
 
   const validatePrices = (): boolean => {
-    const prices = [
-      formData.priceMessage ? parseFloat(formData.priceMessage) : null,
-      formData.priceVideo ? parseFloat(formData.priceVideo) : null,
-      formData.priceLocal ? parseFloat(formData.priceLocal) : null,
-    ].filter(p => p !== null);
+    const hasAtLeastOne = formData.priceMessage || formData.priceVideo || formData.priceLocal;
 
-    if (prices.length === 0) {
+    if (!hasAtLeastOne) {
       alert('Você deve definir pelo menos um tipo de atendimento com preço');
       return false;
     }
 
-    for (const price of prices) {
-      if (price! < minimumPrice) {
-        alert(`Os preços não podem ser menores que R$ ${minimumPrice.toFixed(2)} (valor mínimo definido pelo administrador)`);
+    if (formData.priceMessage) {
+      const priceMessage = parseFloat(formData.priceMessage);
+      if (priceMessage < minimumPrices.message) {
+        alert(`O preço por MENSAGEM não pode ser menor que R$ ${minimumPrices.message.toFixed(2)} (valor mínimo definido pelo administrador)`);
+        return false;
+      }
+    }
+
+    if (formData.priceVideo) {
+      const priceVideo = parseFloat(formData.priceVideo);
+      if (priceVideo < minimumPrices.video) {
+        alert(`O preço por VÍDEO não pode ser menor que R$ ${minimumPrices.video.toFixed(2)} (valor mínimo definido pelo administrador)`);
+        return false;
+      }
+    }
+
+    if (formData.priceLocal) {
+      const priceLocal = parseFloat(formData.priceLocal);
+      if (priceLocal < minimumPrices.home) {
+        alert(`O preço DOMICILIAR não pode ser menor que R$ ${minimumPrices.home.toFixed(2)} (valor mínimo definido pelo administrador)`);
         return false;
       }
     }
@@ -196,12 +219,26 @@ export function ServiceManagement() {
         </div>
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 mb-3">
             <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <p className="text-sm text-blue-800 font-semibold">Valor Mínimo: R$ {minimumPrice.toFixed(2)}</p>
-              <p className="text-xs text-blue-600 mt-1">
-                Este é o valor mínimo definido pelo administrador. Você pode cobrar mais, mas não menos.
+            <div className="flex-1">
+              <p className="text-sm text-blue-800 font-semibold mb-2">Valores Mínimos por Tipo de Atendimento</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                <div className="bg-white rounded p-2 border border-blue-200">
+                  <p className="text-gray-600">Mensagem:</p>
+                  <p className="font-bold text-blue-700">R$ {minimumPrices.message.toFixed(2)}</p>
+                </div>
+                <div className="bg-white rounded p-2 border border-blue-200">
+                  <p className="text-gray-600">Vídeo:</p>
+                  <p className="font-bold text-blue-700">R$ {minimumPrices.video.toFixed(2)}</p>
+                </div>
+                <div className="bg-white rounded p-2 border border-blue-200">
+                  <p className="text-gray-600">Domiciliar:</p>
+                  <p className="font-bold text-blue-700">R$ {minimumPrices.home.toFixed(2)}</p>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 mt-2">
+                Valores mínimos definidos pelo administrador. Você pode cobrar mais, mas não menos.
               </p>
             </div>
           </div>
@@ -254,11 +291,11 @@ export function ServiceManagement() {
                   <input
                     type="number"
                     step="0.01"
-                    min={minimumPrice}
+                    min={minimumPrices.message}
                     value={formData.priceMessage}
                     onChange={(e) => setFormData({ ...formData, priceMessage: e.target.value })}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-                    placeholder="Deixe vazio se não oferece"
+                    placeholder={`Mínimo: R$ ${minimumPrices.message.toFixed(2)}`}
                   />
                 </div>
               </div>
@@ -275,11 +312,11 @@ export function ServiceManagement() {
                   <input
                     type="number"
                     step="0.01"
-                    min={minimumPrice}
+                    min={minimumPrices.video}
                     value={formData.priceVideo}
                     onChange={(e) => setFormData({ ...formData, priceVideo: e.target.value })}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-                    placeholder="Deixe vazio se não oferece"
+                    placeholder={`Mínimo: R$ ${minimumPrices.video.toFixed(2)}`}
                   />
                 </div>
               </div>
@@ -296,11 +333,11 @@ export function ServiceManagement() {
                   <input
                     type="number"
                     step="0.01"
-                    min={minimumPrice}
+                    min={minimumPrices.home}
                     value={formData.priceLocal}
                     onChange={(e) => setFormData({ ...formData, priceLocal: e.target.value })}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-                    placeholder="Deixe vazio se não oferece"
+                    placeholder={`Mínimo: R$ ${minimumPrices.home.toFixed(2)}`}
                   />
                 </div>
               </div>
