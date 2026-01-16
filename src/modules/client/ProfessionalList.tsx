@@ -141,62 +141,31 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       return { status: 'busy' as const };
     }
 
-    // Buscar informações do profissional incluindo horário flexível
-    const { data: professionalData } = await supabase
-      .from('professionals')
-      .select('flexible_schedule_enabled, flexible_start_time, flexible_end_time')
-      .eq('id', professionalId)
-      .maybeSingle();
-
-    // Verificar horários específicos primeiro
+    // Verificar horários configurados do profissional
     const { data: availabilityData } = await supabase
       .from('professional_availability')
       .select('*')
       .eq('professional_id', professionalId)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .eq('day_of_week', todayDayOfWeek);
 
-    const hasSpecificSchedule = availabilityData && availabilityData.length > 0;
-    const hasFlexibleSchedule = professionalData?.flexible_schedule_enabled;
+    // Se não tem horário configurado para hoje, está indisponível
+    if (!availabilityData || availabilityData.length === 0) {
+      return { status: 'busy' as const };
+    }
 
-    // Se não tem nenhum horário cadastrado (nem flexível nem específico), está sempre disponível
-    if (!hasSpecificSchedule && !hasFlexibleSchedule) {
+    // Verificar se está dentro de algum dos horários de hoje
+    const isWithinSchedule = availabilityData.some((slot: any) => {
+      const startTime = slot.start_time.slice(0, 5);
+      const endTime = slot.end_time.slice(0, 5);
+      return currentTime >= startTime && currentTime <= endTime;
+    });
+
+    if (isWithinSchedule) {
       return { status: 'available' as const };
     }
 
-    // Se tem horário flexível ativo, verificar
-    if (hasFlexibleSchedule) {
-      const flexStart = professionalData.flexible_start_time || '08:00:00';
-      const flexEnd = professionalData.flexible_end_time || '18:00:00';
-
-      // Normalizar formatos de tempo para comparação (HH:MM)
-      const currentTimeNormalized = currentTime.slice(0, 5);
-      const flexStartNormalized = flexStart.slice(0, 5);
-      const flexEndNormalized = flexEnd.slice(0, 5);
-
-      if (currentTimeNormalized >= flexStartNormalized && currentTimeNormalized <= flexEndNormalized) {
-        return { status: 'available' as const };
-      } else {
-        return { status: 'busy' as const };
-      }
-    }
-
-    // Se tem horários específicos, verificar
-    if (hasSpecificSchedule) {
-      const todayAvailability = availabilityData.find(
-        (slot: any) => slot.day_of_week === todayDayOfWeek &&
-        slot.start_time <= currentTime &&
-        slot.end_time >= currentTime
-      );
-
-      if (todayAvailability) {
-        return { status: 'available' as const };
-      } else {
-        return { status: 'busy' as const };
-      }
-    }
-
-    // Fallback: disponível
-    return { status: 'available' as const };
+    return { status: 'busy' as const };
   };
 
   const loadProfessionals = async (categoryId: string) => {
