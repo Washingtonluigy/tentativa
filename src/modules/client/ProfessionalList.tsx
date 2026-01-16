@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin } from 'lucide-react';
+import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Category {
@@ -41,11 +41,23 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const [urgencyMode, setUrgencyMode] = useState(false);
   const [userCity, setUserCity] = useState<string>('');
   const [userState, setUserState] = useState<string>('');
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [availableStates, setAvailableStates] = useState<string[]>([]);
+  const [availableCities, setAvailableCities] = useState<{ id: string; city: string }[]>([]);
+  const [selectedFilterState, setSelectedFilterState] = useState<string>('');
+  const [selectedFilterCity, setSelectedFilterCity] = useState<string>('');
 
   useEffect(() => {
     loadCategories();
     loadUserLocation();
+    loadAvailableStates();
   }, []);
+
+  useEffect(() => {
+    if (selectedFilterState) {
+      loadCitiesByState(selectedFilterState);
+    }
+  }, [selectedFilterState]);
 
   const loadUserLocation = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -83,6 +95,32 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
 
     if (data) {
       setCategories(data);
+    }
+  };
+
+  const loadAvailableStates = async () => {
+    const { data } = await supabase
+      .from('brazilian_cities')
+      .select('state')
+      .eq('active', true)
+      .order('state');
+
+    if (data) {
+      const uniqueStates = [...new Set(data.map(item => item.state))];
+      setAvailableStates(uniqueStates);
+    }
+  };
+
+  const loadCitiesByState = async (state: string) => {
+    const { data } = await supabase
+      .from('brazilian_cities')
+      .select('id, city')
+      .eq('state', state)
+      .eq('active', true)
+      .order('city');
+
+    if (data) {
+      setAvailableCities(data);
     }
   };
 
@@ -225,8 +263,11 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     setProfessionals(formatted);
   };
 
-  const loadAllProfessionalsByCity = async () => {
-    if (!userCity || !userState) return;
+  const loadAllProfessionalsByCity = async (filterState?: string, filterCity?: string) => {
+    const cityToUse = filterCity || userCity;
+    const stateToUse = filterState || userState;
+
+    if (!cityToUse || !stateToUse) return;
 
     const profsByCategory: ProfessionalsByCategory[] = [];
 
@@ -253,7 +294,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       if (!profData) continue;
 
       const filteredByCity = profData.filter((p: any) =>
-        p.users?.city === userCity && p.users?.state === userState
+        p.users?.city === cityToUse && p.users?.state === stateToUse
       );
 
       if (filteredByCity.length === 0) continue;
@@ -291,9 +332,18 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     setProfessionalsByCategory(profsByCategory);
   };
 
-  const handleMyCityClick = async () => {
+  const handleMyCityClick = () => {
+    setSelectedFilterState(userState);
+    setSelectedFilterCity(userCity);
+    setShowLocationModal(true);
+  };
+
+  const handleApplyLocationFilter = async () => {
+    if (!selectedFilterState || !selectedFilterCity) return;
+
+    setShowLocationModal(false);
     setShowAllByCity(true);
-    await loadAllProfessionalsByCity();
+    await loadAllProfessionalsByCity(selectedFilterState, selectedFilterCity);
   };
 
   if (showAllByCity) {
@@ -339,16 +389,20 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           </button>
         </div>
 
-        {userCity && userState && (
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2">
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-5 h-5 text-blue-600" />
-            <div>
-              <p className="text-sm font-medium text-blue-900">
-                Profissionais de: {userCity} - {userState}
-              </p>
-            </div>
+            <p className="text-sm font-medium text-blue-900">
+              Profissionais de: {selectedFilterCity} - {selectedFilterState}
+            </p>
           </div>
-        )}
+          <button
+            onClick={() => setShowLocationModal(true)}
+            className="text-xs text-blue-600 hover:text-blue-700 font-medium underline"
+          >
+            Alterar localização
+          </button>
+        </div>
 
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -368,7 +422,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
               Nenhum profissional encontrado
             </p>
             <p className="text-gray-600 text-sm">
-              Não há profissionais cadastrados em <strong>{userCity} - {userState}</strong>
+              Não há profissionais cadastrados em <strong>{selectedFilterCity} - {selectedFilterState}</strong>
             </p>
           </div>
         ) : (
@@ -627,12 +681,13 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   };
 
   return (
-    <div className="min-h-screen pb-20" style={{
-      background: 'linear-gradient(135deg, #f5e6d3 0%, #fef9f3 50%, #fffdf9 100%)'
-    }}>
-      <div className="px-4 pt-4 pb-2">
-        <p className="text-gray-700 text-sm font-medium">Escolha a categoria desejada</p>
-      </div>
+    <>
+      <div className="min-h-screen pb-20" style={{
+        background: 'linear-gradient(135deg, #f5e6d3 0%, #fef9f3 50%, #fffdf9 100%)'
+      }}>
+        <div className="px-4 pt-4 pb-2">
+          <p className="text-gray-700 text-sm font-medium">Escolha a categoria desejada</p>
+        </div>
 
       <div className="px-4 py-2 space-y-4">
         <button
@@ -683,14 +738,90 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         ))}
       </div>
 
-      {categories.length === 0 && (
-        <div className="text-center py-12 px-4">
-          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-            <User className="w-10 h-10 text-gray-400" />
+        {categories.length === 0 && (
+          <div className="text-center py-12 px-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="w-10 h-10 text-gray-400" />
+            </div>
+            <p className="text-gray-600 text-lg font-medium">Nenhuma categoria disponível</p>
           </div>
-          <p className="text-gray-600 text-lg font-medium">Nenhuma categoria disponível</p>
+        )}
+      </div>
+
+      {showLocationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-800">Escolher Localização</h2>
+              <button
+                onClick={() => setShowLocationModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Estado / Região
+                </label>
+                <select
+                  value={selectedFilterState}
+                  onChange={(e) => {
+                    setSelectedFilterState(e.target.value);
+                    setSelectedFilterCity('');
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                >
+                  <option value="">Selecione um estado</option>
+                  {availableStates.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedFilterState && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cidade / Município
+                  </label>
+                  <select
+                    value={selectedFilterCity}
+                    onChange={(e) => setSelectedFilterCity(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">Selecione uma cidade</option>
+                    {availableCities.map((city) => (
+                      <option key={city.id} value={city.city}>
+                        {city.city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="pt-4 flex gap-3">
+                <button
+                  onClick={handleApplyLocationFilter}
+                  disabled={!selectedFilterState || !selectedFilterCity}
+                  className="flex-1 bg-teal-500 text-white py-3 rounded-lg font-semibold hover:bg-teal-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Ver Profissionais
+                </button>
+                <button
+                  onClick={() => setShowLocationModal(false)}
+                  className="px-6 py-3 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
