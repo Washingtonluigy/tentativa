@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, FileText, MessageCircle, MapPin, History } from 'lucide-react';
+import { Users, FileText, MessageCircle, MapPin, History, DollarSign } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BottomNav } from '../../components/BottomNav';
 import { ProfessionalList } from './ProfessionalList';
@@ -7,6 +7,7 @@ import { RequestService } from './RequestService';
 import { MyRequests } from './MyRequests';
 import { GPSTracking } from './GPSTracking';
 import { AppointmentHistory } from './AppointmentHistory';
+import { PlansView } from './PlansView';
 import Messages from './Messages';
 
 export function ClientModule() {
@@ -21,6 +22,7 @@ export function ClientModule() {
     { icon: Users, label: 'Profissionais', value: 'professionals' },
     { icon: FileText, label: 'Chamados', value: 'requests' },
     { icon: MessageCircle, label: 'Conversas', value: 'conversations' },
+    { icon: DollarSign, label: 'Planos', value: 'plans' },
     { icon: MapPin, label: 'GPS', value: 'gps' },
     { icon: History, label: 'Histórico', value: 'history' },
   ];
@@ -62,6 +64,8 @@ export function ClientModule() {
         return <MyRequests onOpenChat={handleOpenChat} />;
       case 'conversations':
         return <Messages selectedProfessionalId={selectedChatProfessionalId} />;
+      case 'plans':
+        return <PlansView />;
       case 'gps':
         return <GPSTracking />;
       case 'history':

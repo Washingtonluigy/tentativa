@@ -8,6 +8,13 @@ interface Category {
   name: string;
 }
 
+interface RegionalPrice {
+  id: string;
+  state: string;
+  city: string | null;
+  minimum_price: number;
+}
+
 interface Professional {
   id: string;
   user_id: string;
@@ -25,6 +32,7 @@ export function ProfessionalManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [regionalPrices, setRegionalPrices] = useState<RegionalPrice[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploading, setUploading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -41,12 +49,13 @@ export function ProfessionalManagement() {
     experienceYears: '',
     references: '',
     description: '',
-    minimumPrice: '',
+    regionalPriceId: '',
   });
 
   useEffect(() => {
     loadProfessionals();
     loadCategories();
+    loadRegionalPrices();
   }, []);
 
   const loadProfessionals = async () => {
@@ -108,6 +117,18 @@ export function ProfessionalManagement() {
 
     if (data) {
       setCategories(data);
+    }
+  };
+
+  const loadRegionalPrices = async () => {
+    const { data, error } = await supabase
+      .from('regional_minimum_prices')
+      .select('id, state, city, minimum_price')
+      .eq('active', true)
+      .order('state');
+
+    if (data) {
+      setRegionalPrices(data);
     }
   };
 
@@ -195,6 +216,19 @@ export function ProfessionalManagement() {
           return;
         }
 
+        const selectedRegion = regionalPrices.find(r => r.id === formData.regionalPriceId);
+
+        if (formData.regionalPriceId && selectedRegion) {
+          await supabase
+            .from('users')
+            .update({
+              state: selectedRegion.state,
+              city: selectedRegion.city,
+              regional_price_id: formData.regionalPriceId
+            })
+            .eq('id', professional.user_id);
+        }
+
         const { error: profError } = await supabase
           .from('professionals')
           .update({
@@ -202,7 +236,6 @@ export function ProfessionalManagement() {
             experience_years: parseInt(formData.experienceYears),
             professional_references: formData.references,
             description: formData.description,
-            minimum_price: parseFloat(formData.minimumPrice) || 0,
           })
           .eq('id', editingId);
 
@@ -229,12 +262,17 @@ export function ProfessionalManagement() {
         }
 
         console.log('Criando usuário...');
+        const selectedRegion = regionalPrices.find(r => r.id === formData.regionalPriceId);
+
         const { data: userData, error: userError } = await supabase
           .from('users')
           .insert([{
             email: formData.email,
             password_hash: formData.password,
-            role: 'professional'
+            role: 'professional',
+            state: selectedRegion?.state || null,
+            city: selectedRegion?.city || null,
+            regional_price_id: formData.regionalPriceId || null
           }])
           .select()
           .single();
@@ -286,7 +324,6 @@ export function ProfessionalManagement() {
             experience_years: parseInt(formData.experienceYears),
             professional_references: formData.references,
             description: formData.description,
-            minimum_price: parseFloat(formData.minimumPrice) || 0,
             status: 'active'
           }]);
 
@@ -315,7 +352,7 @@ export function ProfessionalManagement() {
         experienceYears: '',
         references: '',
         description: '',
-        minimumPrice: '',
+        regionalPriceId: '',
       });
       setPhotoFile(null);
       setPhotoPreview('');
@@ -340,8 +377,13 @@ export function ProfessionalManagement() {
       .maybeSingle();
     const { data: profData } = await supabase
       .from('professionals')
-      .select('professional_references, description, minimum_price')
+      .select('professional_references, description')
       .eq('id', professional.id)
+      .maybeSingle();
+    const { data: userData } = await supabase
+      .from('users')
+      .select('regional_price_id')
+      .eq('id', professional.user_id)
       .maybeSingle();
 
     setFormData({
@@ -353,7 +395,7 @@ export function ProfessionalManagement() {
       experienceYears: professional.experience_years.toString(),
       references: profData?.professional_references || '',
       description: profData?.description || '',
-      minimumPrice: profData?.minimum_price?.toString() || '0',
+      regionalPriceId: userData?.regional_price_id || '',
     });
     setPhotoPreview(profileData?.photo_url || '');
     setEditingId(professional.id);
@@ -396,7 +438,7 @@ export function ProfessionalManagement() {
                 experienceYears: '',
                 references: '',
                 description: '',
-                minimumPrice: '',
+                regionalPriceId: '',
               });
               setPhotoFile(null);
               setPhotoPreview('');
@@ -560,21 +602,23 @@ export function ProfessionalManagement() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Valor Mínimo (R$)
+              Estado/Região
             </label>
             <p className="text-xs text-gray-500 mb-2">
-              O profissional não poderá cobrar menos que este valor pelos seus serviços
+              Selecione o estado onde o profissional atua. O valor mínimo será definido automaticamente pela região.
             </p>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.minimumPrice}
-              onChange={(e) => setFormData({ ...formData, minimumPrice: e.target.value })}
+            <select
+              value={formData.regionalPriceId}
+              onChange={(e) => setFormData({ ...formData, regionalPriceId: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-              placeholder="0.00"
-              required
-            />
+            >
+              <option value="">Selecione um estado</option>
+              {regionalPrices.map((region) => (
+                <option key={region.id} value={region.id}>
+                  {region.state}{region.city ? ` - ${region.city}` : ''} (Mínimo: R$ {region.minimum_price.toFixed(2)})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>
