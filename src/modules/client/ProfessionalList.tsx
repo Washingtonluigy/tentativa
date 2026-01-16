@@ -87,7 +87,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     if (showAllByCity) {
       loadAllProfessionalsByCity();
     }
-  }, [urgencyMode, urgencyType]);
+  }, [showAllByCity, urgencyMode, urgencyType]);
 
   const loadCategories = async () => {
     const { data } = await supabase
@@ -852,6 +852,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                 onClick={() => {
                   setUrgencyMode(true);
                   setUrgencyType('message');
+                  setSelectedCategory(null);
+                  setShowAllByCity(true);
                   setShowUrgencyTypeModal(false);
                 }}
                 className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
@@ -875,6 +877,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                 onClick={() => {
                   setUrgencyMode(true);
                   setUrgencyType('video');
+                  setSelectedCategory(null);
+                  setShowAllByCity(true);
                   setShowUrgencyTypeModal(false);
                 }}
                 className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
@@ -898,6 +902,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                 onClick={() => {
                   setUrgencyMode(true);
                   setUrgencyType('home');
+                  setSelectedCategory(null);
+                  setShowAllByCity(true);
                   setShowUrgencyTypeModal(false);
                 }}
                 className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
@@ -922,6 +928,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                   onClick={() => {
                     setUrgencyMode(false);
                     setUrgencyType(null);
+                    setShowAllByCity(false);
                     setShowUrgencyTypeModal(false);
                   }}
                   className="w-full mt-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition"
