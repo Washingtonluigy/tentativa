@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Calendar, Clock, Save, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Save, AlertCircle, MessageSquare, Video, Home } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DaySchedule {
@@ -26,7 +26,9 @@ export function Schedule() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [professionalId, setProfessionalId] = useState<string>('');
-  const [acceptsUrgentRequests, setAcceptsUrgentRequests] = useState(false);
+  const [acceptsUrgentMessage, setAcceptsUrgentMessage] = useState(false);
+  const [acceptsUrgentVideo, setAcceptsUrgentVideo] = useState(false);
+  const [acceptsUrgentHome, setAcceptsUrgentHome] = useState(false);
   const [weekSchedule, setWeekSchedule] = useState<DaySchedule[]>(
     DAYS_OF_WEEK.map(day => ({
       day_of_week: day.value,
@@ -49,7 +51,7 @@ export function Schedule() {
 
       const { data: profData, error } = await supabase
         .from('professionals')
-        .select('id, accepts_urgent_requests')
+        .select('id, accepts_urgent_message, accepts_urgent_video, accepts_urgent_home')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -59,7 +61,9 @@ export function Schedule() {
       }
 
       setProfessionalId(profData.id);
-      setAcceptsUrgentRequests(profData.accepts_urgent_requests || false);
+      setAcceptsUrgentMessage(profData.accepts_urgent_message || false);
+      setAcceptsUrgentVideo(profData.accepts_urgent_video || false);
+      setAcceptsUrgentHome(profData.accepts_urgent_home || false);
       await loadAvailability(profData.id);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
@@ -125,10 +129,14 @@ export function Schedule() {
 
     setSaving(true);
     try {
-      // Salvar configuração de urgência
+      // Salvar configurações de urgência por tipo
       await supabase
         .from('professionals')
-        .update({ accepts_urgent_requests: acceptsUrgentRequests })
+        .update({
+          accepts_urgent_message: acceptsUrgentMessage,
+          accepts_urgent_video: acceptsUrgentVideo,
+          accepts_urgent_home: acceptsUrgentHome
+        })
         .eq('id', professionalId);
 
       // Deletar todos os horários existentes
@@ -195,35 +203,94 @@ export function Schedule() {
           <p className="text-gray-600 text-sm mt-1">Configure os dias e horários que você trabalha</p>
         </div>
 
-        {/* Atendimento Urgente */}
+        {/* Atendimento Urgente por Tipo */}
         <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-red-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-red-100 p-3 rounded-full">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-800">Atendimento Urgente</h3>
-                <p className="text-sm text-gray-600">Aceite chamados urgentes dos clientes</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="bg-red-100 p-3 rounded-full">
+              <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">Atendimento Urgente</h3>
+              <p className="text-sm text-gray-600">Escolha quais tipos de urgência você aceita</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg p-4 space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border-2 transition hover:border-blue-300"
+                 style={{ borderColor: acceptsUrgentMessage ? '#3b82f6' : '#e5e7eb' }}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${acceptsUrgentMessage ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                  <MessageSquare className={`w-5 h-5 ${acceptsUrgentMessage ? 'text-blue-600' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Por Mensagem</p>
+                  <p className="text-xs text-gray-500">Atendimento via chat</p>
+                </div>
+              </div>
               <input
                 type="checkbox"
-                checked={acceptsUrgentRequests}
-                onChange={(e) => setAcceptsUrgentRequests(e.target.checked)}
-                className="sr-only peer"
+                checked={acceptsUrgentMessage}
+                onChange={(e) => setAcceptsUrgentMessage(e.target.checked)}
+                className="w-6 h-6 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
               />
-              <div className="w-14 h-7 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
-            </label>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg border-2 transition hover:border-purple-300"
+                 style={{ borderColor: acceptsUrgentVideo ? '#a855f7' : '#e5e7eb' }}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${acceptsUrgentVideo ? 'bg-purple-100' : 'bg-gray-100'}`}>
+                  <Video className={`w-5 h-5 ${acceptsUrgentVideo ? 'text-purple-600' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Por Chamada de Vídeo</p>
+                  <p className="text-xs text-gray-500">Atendimento por videochamada</p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={acceptsUrgentVideo}
+                onChange={(e) => setAcceptsUrgentVideo(e.target.checked)}
+                className="w-6 h-6 text-purple-600 border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg border-2 transition hover:border-green-300"
+                 style={{ borderColor: acceptsUrgentHome ? '#10b981' : '#e5e7eb' }}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${acceptsUrgentHome ? 'bg-green-100' : 'bg-gray-100'}`}>
+                  <Home className={`w-5 h-5 ${acceptsUrgentHome ? 'text-green-600' : 'text-gray-400'}`} />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">Atendimento Domiciliar</p>
+                  <p className="text-xs text-gray-500">Atendimento no local do cliente</p>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={acceptsUrgentHome}
+                onChange={(e) => setAcceptsUrgentHome(e.target.checked)}
+                className="w-6 h-6 text-green-600 border-gray-300 rounded focus:ring-2 focus:ring-green-500"
+              />
+            </div>
           </div>
-          <p className="mt-4 text-sm text-gray-700 bg-white p-3 rounded-lg">
-            {acceptsUrgentRequests ? (
-              <span className="text-green-700 font-medium">✅ Você aparecerá nas buscas de urgência</span>
+
+          <div className="mt-4 bg-white rounded-lg p-3">
+            {(acceptsUrgentMessage || acceptsUrgentVideo || acceptsUrgentHome) ? (
+              <p className="text-sm text-green-700 font-medium">
+                ✅ Você aparecerá em buscas urgentes de: {
+                  [
+                    acceptsUrgentMessage && 'Mensagem',
+                    acceptsUrgentVideo && 'Vídeo',
+                    acceptsUrgentHome && 'Domiciliar'
+                  ].filter(Boolean).join(', ')
+                }
+              </p>
             ) : (
-              <span className="text-gray-600">Você não aparecerá nas buscas de urgência</span>
+              <p className="text-sm text-gray-600">
+                Você não aparecerá nas buscas de urgência
+              </p>
             )}
-          </p>
+          </div>
         </div>
 
         {/* Configuração de Dias e Horários */}

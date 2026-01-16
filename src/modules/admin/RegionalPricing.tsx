@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { MapPin, DollarSign, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { MapPin, DollarSign, Plus, Edit2, Trash2, Save, X, MessageSquare, Video, Home } from 'lucide-react';
 import { NotificationPopup } from '../../components/NotificationPopup';
 
 interface RegionalPrice {
@@ -8,6 +8,9 @@ interface RegionalPrice {
   state: string;
   city: string | null;
   minimum_price: number;
+  minimum_price_message: number;
+  minimum_price_video: number;
+  minimum_price_home: number;
   description: string;
   active: boolean;
   created_at: string;
@@ -23,7 +26,9 @@ export function RegionalPricing() {
   const [formData, setFormData] = useState({
     state: '',
     city: '',
-    minimum_price: '',
+    minimum_price_message: '',
+    minimum_price_video: '',
+    minimum_price_home: '',
     description: '',
     active: true,
   });
@@ -55,7 +60,9 @@ export function RegionalPricing() {
       const dataToSave = {
         state: formData.state,
         city: formData.city || null,
-        minimum_price: parseFloat(formData.minimum_price),
+        minimum_price_message: parseFloat(formData.minimum_price_message) || 0,
+        minimum_price_video: parseFloat(formData.minimum_price_video) || 0,
+        minimum_price_home: parseFloat(formData.minimum_price_home) || 0,
         description: formData.description,
         active: formData.active,
       };
@@ -91,7 +98,9 @@ export function RegionalPricing() {
     setFormData({
       state: price.state,
       city: price.city || '',
-      minimum_price: price.minimum_price.toString(),
+      minimum_price_message: price.minimum_price_message?.toString() || '0',
+      minimum_price_video: price.minimum_price_video?.toString() || '0',
+      minimum_price_home: price.minimum_price_home?.toString() || '0',
       description: price.description,
       active: price.active,
     });
@@ -123,7 +132,9 @@ export function RegionalPricing() {
     setFormData({
       state: '',
       city: '',
-      minimum_price: '',
+      minimum_price_message: '',
+      minimum_price_video: '',
+      minimum_price_home: '',
       description: '',
       active: true,
     });
@@ -196,22 +207,6 @@ export function RegionalPricing() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor Mínimo (R$) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.minimum_price}
-                  onChange={(e) => setFormData({ ...formData, minimum_price: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  placeholder="120.00"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Status
                 </label>
                 <select
@@ -222,6 +217,78 @@ export function RegionalPricing() {
                   <option value="true">Ativo</option>
                   <option value="false">Inativo</option>
                 </select>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
+              <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-blue-600" />
+                Valores Mínimos por Tipo de Atendimento
+              </h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Defina o valor mínimo que profissionais devem cobrar para cada modalidade de atendimento
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Por Mensagem (R$) *
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.minimum_price_message}
+                    onChange={(e) => setFormData({ ...formData, minimum_price_message: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="50.00"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Atendimento via chat</p>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border-2 border-purple-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Video className="w-5 h-5 text-purple-600" />
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Por Vídeo (R$) *
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.minimum_price_video}
+                    onChange={(e) => setFormData({ ...formData, minimum_price_video: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="80.00"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Atendimento por videochamada</p>
+                </div>
+
+                <div className="bg-white rounded-lg p-4 border-2 border-green-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Home className="w-5 h-5 text-green-600" />
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Domiciliar (R$) *
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.minimum_price_home}
+                    onChange={(e) => setFormData({ ...formData, minimum_price_home: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                    placeholder="120.00"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Atendimento no local do cliente</p>
+                </div>
               </div>
             </div>
 
@@ -294,12 +361,36 @@ export function RegionalPricing() {
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 mb-3">
-                    <DollarSign className="w-5 h-5 text-green-600" />
-                    <span className="text-2xl font-bold text-green-600">
-                      R$ {price.minimum_price.toFixed(2)}
-                    </span>
-                    <span className="text-sm text-gray-500">valor mínimo</span>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MessageSquare className="w-4 h-4 text-blue-600" />
+                        <span className="text-xs font-medium text-gray-600">Mensagem</span>
+                      </div>
+                      <span className="text-lg font-bold text-blue-600">
+                        R$ {(price.minimum_price_message || 0).toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Video className="w-4 h-4 text-purple-600" />
+                        <span className="text-xs font-medium text-gray-600">Vídeo</span>
+                      </div>
+                      <span className="text-lg font-bold text-purple-600">
+                        R$ {(price.minimum_price_video || 0).toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Home className="w-4 h-4 text-green-600" />
+                        <span className="text-xs font-medium text-gray-600">Domiciliar</span>
+                      </div>
+                      <span className="text-lg font-bold text-green-600">
+                        R$ {(price.minimum_price_home || 0).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
 
                   {price.description && (

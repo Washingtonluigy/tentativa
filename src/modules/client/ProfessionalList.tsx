@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X } from 'lucide-react';
+import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X, MessageSquare, Video, Home } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Category {
@@ -39,6 +39,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const [professionalsByCategory, setProfessionalsByCategory] = useState<ProfessionalsByCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [urgencyMode, setUrgencyMode] = useState(false);
+  const [urgencyType, setUrgencyType] = useState<'message' | 'video' | 'home' | null>(null);
+  const [showUrgencyTypeModal, setShowUrgencyTypeModal] = useState(false);
   const [userCity, setUserCity] = useState<string>('');
   const [userState, setUserState] = useState<string>('');
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -79,13 +81,13 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     if (selectedCategory) {
       loadProfessionals(selectedCategory);
     }
-  }, [selectedCategory, urgencyMode]);
+  }, [selectedCategory, urgencyMode, urgencyType]);
 
   useEffect(() => {
     if (showAllByCity) {
       loadAllProfessionalsByCity();
     }
-  }, [urgencyMode]);
+  }, [urgencyMode, urgencyType]);
 
   const loadCategories = async () => {
     const { data } = await supabase
@@ -181,8 +183,14 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       .eq('category_id', categoryId)
       .eq('status', 'active');
 
-    if (urgencyMode) {
-      query = query.eq('accepts_urgent_requests', true);
+    if (urgencyMode && urgencyType) {
+      if (urgencyType === 'message') {
+        query = query.eq('accepts_urgent_message', true);
+      } else if (urgencyType === 'video') {
+        query = query.eq('accepts_urgent_video', true);
+      } else if (urgencyType === 'home') {
+        query = query.eq('accepts_urgent_home', true);
+      }
     }
 
     const { data: profData, error } = await query;
@@ -254,8 +262,14 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
         .eq('category_id', category.id)
         .eq('status', 'active');
 
-      if (urgencyMode) {
-        query = query.eq('accepts_urgent_requests', true);
+      if (urgencyMode && urgencyType) {
+        if (urgencyType === 'message') {
+          query = query.eq('accepts_urgent_message', true);
+        } else if (urgencyType === 'video') {
+          query = query.eq('accepts_urgent_video', true);
+        } else if (urgencyType === 'home') {
+          query = query.eq('accepts_urgent_home', true);
+        }
       }
 
       const { data: profData, error } = await query;
@@ -346,7 +360,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           </div>
 
           <button
-            onClick={() => setUrgencyMode(!urgencyMode)}
+            onClick={() => setShowUrgencyTypeModal(true)}
             className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
               urgencyMode
                 ? 'bg-red-500 text-white shadow-lg'
@@ -354,7 +368,11 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             }`}
           >
             <AlertCircle className="w-4 h-4" />
-            Urgência
+            {urgencyMode && urgencyType ? (
+              urgencyType === 'message' ? 'Urg.: Mensagem' :
+              urgencyType === 'video' ? 'Urg.: Vídeo' :
+              'Urg.: Domiciliar'
+            ) : 'Urgência'}
           </button>
         </div>
 
@@ -501,7 +519,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           </div>
 
           <button
-            onClick={() => setUrgencyMode(!urgencyMode)}
+            onClick={() => setShowUrgencyTypeModal(true)}
             className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 ${
               urgencyMode
                 ? 'bg-red-500 text-white shadow-lg'
@@ -509,7 +527,11 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             }`}
           >
             <AlertCircle className="w-4 h-4" />
-            Urgência
+            {urgencyMode && urgencyType ? (
+              urgencyType === 'message' ? 'Urg.: Mensagem' :
+              urgencyType === 'video' ? 'Urg.: Vídeo' :
+              'Urg.: Domiciliar'
+            ) : 'Urgência'}
           </button>
         </div>
 
@@ -787,6 +809,111 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                   Cancelar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seleção de Tipo de Urgência */}
+      {showUrgencyTypeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-800">Tipo de Urgência</h2>
+              <button
+                onClick={() => setShowUrgencyTypeModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-3">
+              <p className="text-gray-600 text-sm mb-4">
+                Selecione o tipo de atendimento urgente que você precisa:
+              </p>
+
+              <button
+                onClick={() => {
+                  setUrgencyMode(true);
+                  setUrgencyType('message');
+                  setShowUrgencyTypeModal(false);
+                }}
+                className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                  urgencyType === 'message'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-3 rounded-lg">
+                    <MessageSquare className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Urgência por Mensagem</p>
+                    <p className="text-xs text-gray-500">Atendimento via chat</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setUrgencyMode(true);
+                  setUrgencyType('video');
+                  setShowUrgencyTypeModal(false);
+                }}
+                className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                  urgencyType === 'video'
+                    ? 'border-purple-500 bg-purple-50'
+                    : 'border-gray-200 hover:border-purple-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-purple-100 p-3 rounded-lg">
+                    <Video className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Urgência por Vídeo</p>
+                    <p className="text-xs text-gray-500">Atendimento por videochamada</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setUrgencyMode(true);
+                  setUrgencyType('home');
+                  setShowUrgencyTypeModal(false);
+                }}
+                className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
+                  urgencyType === 'home'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-green-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-100 p-3 rounded-lg">
+                    <Home className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800">Urgência Domiciliar</p>
+                    <p className="text-xs text-gray-500">Atendimento no local</p>
+                  </div>
+                </div>
+              </button>
+
+              {urgencyMode && (
+                <button
+                  onClick={() => {
+                    setUrgencyMode(false);
+                    setUrgencyType(null);
+                    setShowUrgencyTypeModal(false);
+                  }}
+                  className="w-full mt-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition"
+                >
+                  Desativar Urgência
+                </button>
+              )}
             </div>
           </div>
         </div>
