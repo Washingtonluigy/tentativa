@@ -760,7 +760,13 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-800">Escolher Localização</h2>
               <button
-                onClick={() => setShowLocationModal(false)}
+                onClick={() => {
+                  setShowLocationModal(false);
+                  if (urgencyMode) {
+                    setUrgencyMode(false);
+                    setUrgencyType(null);
+                  }
+                }}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
               >
                 <X className="w-5 h-5 text-gray-600" />
@@ -768,6 +774,19 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             </div>
 
             <div className="p-4 space-y-4">
+              {urgencyMode && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-red-800">
+                    <p className="font-medium mb-1">Atendimento Urgente Ativado</p>
+                    <p>Selecione a cidade para encontrar profissionais com atendimento urgente de {
+                      urgencyType === 'message' ? 'mensagem' :
+                      urgencyType === 'video' ? 'vídeo' :
+                      'domiciliar'
+                    }.</p>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Estado / Região
@@ -853,8 +872,16 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                   setUrgencyMode(true);
                   setUrgencyType('message');
                   setSelectedCategory(null);
-                  setShowAllByCity(true);
                   setShowUrgencyTypeModal(false);
+                  if (!userCity || !userState) {
+                    setSelectedFilterState('');
+                    setSelectedFilterCity('');
+                    setShowLocationModal(true);
+                  } else {
+                    setSelectedFilterState(userState);
+                    setSelectedFilterCity(userCity);
+                    setShowAllByCity(true);
+                  }
                 }}
                 className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
                   urgencyType === 'message'
@@ -878,8 +905,16 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                   setUrgencyMode(true);
                   setUrgencyType('video');
                   setSelectedCategory(null);
-                  setShowAllByCity(true);
                   setShowUrgencyTypeModal(false);
+                  if (!userCity || !userState) {
+                    setSelectedFilterState('');
+                    setSelectedFilterCity('');
+                    setShowLocationModal(true);
+                  } else {
+                    setSelectedFilterState(userState);
+                    setSelectedFilterCity(userCity);
+                    setShowAllByCity(true);
+                  }
                 }}
                 className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
                   urgencyType === 'video'
@@ -903,8 +938,16 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                   setUrgencyMode(true);
                   setUrgencyType('home');
                   setSelectedCategory(null);
-                  setShowAllByCity(true);
                   setShowUrgencyTypeModal(false);
+                  if (!userCity || !userState) {
+                    setSelectedFilterState('');
+                    setSelectedFilterCity('');
+                    setShowLocationModal(true);
+                  } else {
+                    setSelectedFilterState(userState);
+                    setSelectedFilterCity(userCity);
+                    setShowAllByCity(true);
+                  }
                 }}
                 className={`w-full p-4 rounded-xl border-2 transition-all hover:scale-105 ${
                   urgencyType === 'home'
