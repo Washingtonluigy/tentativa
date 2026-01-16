@@ -7,9 +7,10 @@ import logo from '../assets/logo_amah_(1).png';
 interface HeaderProps {
   title: string;
   onMenuClick?: () => void;
+  onNameClick?: () => void;
 }
 
-export function Header({ title, onMenuClick }: HeaderProps) {
+export function Header({ title, onMenuClick, onNameClick }: HeaderProps) {
   const { logout, user } = useAuth();
   const [userName, setUserName] = useState<string>('');
 
@@ -48,7 +49,16 @@ export function Header({ title, onMenuClick }: HeaderProps) {
             <Menu className={`w-5 h-5 ${isAdmin ? 'text-white' : 'text-gray-700'}`} strokeWidth={2.5} />
           </button>
         )}
-        <h1 className={`text-xs font-semibold tracking-tight ${textColor}`}>{userName || title}</h1>
+        {onNameClick ? (
+          <button
+            onClick={onNameClick}
+            className={`text-xs font-semibold tracking-tight ${textColor} hover:underline transition`}
+          >
+            {userName || title}
+          </button>
+        ) : (
+          <h1 className={`text-xs font-semibold tracking-tight ${textColor}`}>{userName || title}</h1>
+        )}
       </div>
 
       <div className="absolute left-1/2 transform -translate-x-1/2">
