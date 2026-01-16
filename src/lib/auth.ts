@@ -19,8 +19,7 @@ export const authService = {
       const { data, error } = await supabase
         .from('users')
         .select('id, email, role, password_hash')
-        .eq('email', email)
-        .maybeSingle();
+        .eq('email', email);
 
       console.log('Resultado da query:', { data, error });
 
@@ -29,20 +28,18 @@ export const authService = {
         return { user: null, error: 'Erro ao conectar com o banco de dados: ' + error.message };
       }
 
-      if (!data) {
+      if (!data || data.length === 0) {
         console.log('Usuário não encontrado');
         return { user: null, error: 'Credenciais inválidas' };
       }
 
-      console.log('Senha informada:', password);
-      console.log('Senha no banco:', data.password_hash);
-      console.log('Senhas são iguais?', data.password_hash === password);
+      const matchedUser = data.find(u => u.password_hash === password);
 
-      if (data.password_hash === password) {
+      if (matchedUser) {
         const user: User = {
-          id: data.id,
-          email: data.email,
-          role: data.role as 'admin' | 'professional' | 'client',
+          id: matchedUser.id,
+          email: matchedUser.email,
+          role: matchedUser.role as 'admin' | 'professional' | 'client',
         };
 
         localStorage.setItem('currentUser', JSON.stringify(user));
@@ -75,6 +72,17 @@ export const authService = {
     securityAnswer3: string
   ): Promise<AuthResponse> {
     try {
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id, role')
+        .eq('email', email)
+        .eq('role', 'client')
+        .maybeSingle();
+
+      if (existingUser) {
+        return { user: null, error: 'Este email já está cadastrado como cliente' };
+      }
+
       const { data: userData, error: userError } = await supabase
         .from('users')
         .insert([{
@@ -127,62 +135,63 @@ export const authService = {
     email: string,
     securityAnswers: { answer1: string; answer2: string; answer3: string },
     newPassword: string
-  ): Promise<{ success: boolean; error: string | null }> {
+  ): Promise<{ success: boolean; error: string | null; role?: string }> {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, security_question_1, security_answer_1, security_question_2, security_answer_2, security_question_3, security_answer_3')
-        .eq('email', email)
-        .maybeSingle();
+        .select('id, role, security_question_1, security_answer_1, security_question_2, security_answer_2, security_question_3, security_answer_3')
+        .eq('email', email);
 
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         return { success: false, error: 'Email não encontrado' };
       }
 
-      const answer1Match = data.security_answer_1 === securityAnswers.answer1.toLowerCase().trim();
-      const answer2Match = data.security_answer_2 === securityAnswers.answer2.toLowerCase().trim();
-      const answer3Match = data.security_answer_3 === securityAnswers.answer3.toLowerCase().trim();
+      for (const user of data) {
+        const answer1Match = user.security_answer_1 === securityAnswers.answer1.toLowerCase().trim();
+        const answer2Match = user.security_answer_2 === securityAnswers.answer2.toLowerCase().trim();
+        const answer3Match = user.security_answer_3 === securityAnswers.answer3.toLowerCase().trim();
 
-      const correctAnswers = [answer1Match, answer2Match, answer3Match].filter(Boolean).length;
+        const correctAnswers = [answer1Match, answer2Match, answer3Match].filter(Boolean).length;
 
-      if (correctAnswers < 2) {
-        return { success: false, error: 'Respostas incorretas. Você precisa acertar pelo menos 2 de 3 perguntas' };
+        if (correctAnswers >= 2) {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ password_hash: newPassword })
+            .eq('id', user.id);
+
+          if (updateError) {
+            return { success: false, error: 'Erro ao atualizar senha' };
+          }
+
+          return { success: true, error: null, role: user.role };
+        }
       }
 
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ password_hash: newPassword })
-        .eq('id', data.id);
-
-      if (updateError) {
-        return { success: false, error: 'Erro ao atualizar senha' };
-      }
-
-      return { success: true, error: null };
+      return { success: false, error: 'Respostas incorretas. Você precisa acertar pelo menos 2 de 3 perguntas' };
     } catch (error) {
       return { success: false, error: 'Erro ao redefinir senha' };
     }
   },
 
-  async getSecurityQuestions(email: string): Promise<{ questions: string[] | null; error: string | null }> {
+  async getSecurityQuestions(email: string): Promise<{ questions: string[] | null; error: string | null; hasMultipleAccounts?: boolean }> {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('security_question_1, security_question_2, security_question_3')
-        .eq('email', email)
-        .maybeSingle();
+        .select('security_question_1, security_question_2, security_question_3, role')
+        .eq('email', email);
 
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         return { questions: null, error: 'Email não encontrado' };
       }
 
       return {
         questions: [
-          data.security_question_1,
-          data.security_question_2,
-          data.security_question_3
+          data[0].security_question_1,
+          data[0].security_question_2,
+          data[0].security_question_3
         ],
-        error: null
+        error: null,
+        hasMultipleAccounts: data.length > 1
       };
     } catch (error) {
       return { questions: null, error: 'Erro ao buscar perguntas' };
