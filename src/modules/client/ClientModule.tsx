@@ -22,9 +22,9 @@ export function ClientModule() {
   const [showProfile, setShowProfile] = useState(false);
 
   const navItems = [
-    { icon: Users, label: 'Profissionais', value: 'professionals' },
-    { icon: FileText, label: 'Chamados', value: 'requests' },
-    { icon: MessageCircle, label: 'Conversas', value: 'conversations' },
+    { icon: Users, label: 'Profiss.', value: 'professionals' },
+    { icon: FileText, label: 'Chamad.', value: 'requests' },
+    { icon: MessageCircle, label: 'Chat', value: 'conversations' },
     { icon: DollarSign, label: 'Planos', value: 'plans' },
     { icon: Home, label: 'Minha Cidade', value: 'my-city' },
     { icon: MapPin, label: 'GPS', value: 'gps' },
