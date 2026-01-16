@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { LogOut, Menu } from 'lucide-react';
+import { LogOut, Menu, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import logo from '../assets/logo_amah_(1).png';
@@ -13,23 +13,27 @@ interface HeaderProps {
 export function Header({ title, onMenuClick, onNameClick }: HeaderProps) {
   const { logout, user } = useAuth();
   const [userName, setUserName] = useState<string>('');
+  const [photoUrl, setPhotoUrl] = useState<string>('');
 
   useEffect(() => {
-    const loadUserName = async () => {
+    const loadUserProfile = async () => {
       if (user?.id) {
         const { data } = await supabase
           .from('profiles')
-          .select('full_name')
+          .select('full_name, photo_url')
           .eq('user_id', user.id)
           .maybeSingle();
 
         if (data?.full_name) {
           setUserName(data.full_name);
         }
+        if (data?.photo_url) {
+          setPhotoUrl(data.photo_url);
+        }
       }
     };
 
-    loadUserName();
+    loadUserProfile();
   }, [user?.id]);
 
   const isAdmin = user?.role === 'admin';
@@ -40,7 +44,7 @@ export function Header({ title, onMenuClick, onNameClick }: HeaderProps) {
 
   return (
     <div className={`px-6 py-4 flex items-center justify-between sticky top-0 z-10 ${headerClass}`}>
-      <div className="flex items-center gap-3 mt-2">
+      <div className="flex items-center gap-3">
         {onMenuClick && (
           <button
             onClick={onMenuClick}
@@ -52,9 +56,15 @@ export function Header({ title, onMenuClick, onNameClick }: HeaderProps) {
         {onNameClick ? (
           <button
             onClick={onNameClick}
-            className={`text-xs font-semibold tracking-tight ${textColor} hover:underline transition`}
+            className="flex items-center gap-2 hover:opacity-80 transition"
           >
-            {userName || title}
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${isAdmin ? 'bg-white/20' : 'bg-white'} border-2 ${isAdmin ? 'border-white/30' : 'border-gray-200'}`}>
+              {photoUrl ? (
+                <img src={photoUrl} alt="Perfil" className="w-full h-full object-cover" />
+              ) : (
+                <User className={`w-5 h-5 ${isAdmin ? 'text-white' : 'text-gray-600'}`} />
+              )}
+            </div>
           </button>
         ) : (
           <h1 className={`text-xs font-semibold tracking-tight ${textColor}`}>{userName || title}</h1>
