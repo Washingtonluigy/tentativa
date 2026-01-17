@@ -109,47 +109,82 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
 
   const handleAccept = async (requestId: string, clientId: string, professionalServiceId: string | null) => {
     try {
-      let paymentLink = null;
+      if (!user) return;
 
-      // Buscar a solicitação para pegar o tipo de serviço
       const { data: requestData } = await supabase
         .from('service_requests')
         .select('service_type')
         .eq('id', requestId)
         .maybeSingle();
 
-      // Buscar o link de pagamento do serviço profissional baseado no tipo
-      if (professionalServiceId && requestData) {
-        const { data: serviceData } = await supabase
-          .from('professional_services')
-          .select('payment_link_message, payment_link_video, payment_link_local')
-          .eq('id', professionalServiceId)
-          .maybeSingle();
-
-        if (serviceData) {
-          // Selecionar o link correto baseado no tipo de serviço
-          switch (requestData.service_type) {
-            case 'message':
-              paymentLink = serviceData.payment_link_message;
-              break;
-            case 'video_call':
-              paymentLink = serviceData.payment_link_video;
-              break;
-            case 'in_person':
-              paymentLink = serviceData.payment_link_local;
-              break;
-          }
-        }
+      if (!requestData) {
+        alert('Erro ao buscar dados do chamado');
+        return;
       }
 
-      // Atualizar o status e adicionar o link de pagamento
+      const { data: professional } = await supabase
+        .from('professionals')
+        .select('id, mercadopago_connected')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!professional) {
+        alert('Erro ao buscar dados do profissional');
+        return;
+      }
+
       await supabase
         .from('service_requests')
-        .update({
-          status: 'accepted',
-          payment_link: paymentLink
-        })
+        .update({ status: 'accepted' })
         .eq('id', requestId);
+
+      if (professional.mercadopago_connected) {
+        let amount = 100;
+
+        if (professionalServiceId) {
+          const { data: serviceData } = await supabase
+            .from('professional_services')
+            .select('minimum_price')
+            .eq('id', professionalServiceId)
+            .maybeSingle();
+
+          if (serviceData?.minimum_price) {
+            amount = serviceData.minimum_price;
+          }
+        }
+
+        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-create-payment`;
+
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              serviceRequestId: requestId,
+              amount: amount,
+              commissionPercentage: 10
+            }),
+          });
+
+          const paymentData = await response.json();
+
+          if (paymentData.success && paymentData.initPoint) {
+            await supabase
+              .from('service_requests')
+              .update({ payment_link: paymentData.initPoint })
+              .eq('id', requestId);
+          } else if (paymentData.needsConnection) {
+            alert('Você precisa conectar sua conta Mercado Pago primeiro. Acesse a aba "Pagamentos".');
+          } else if (paymentData.needsRefresh) {
+            alert('Seu token expirou. Renove-o na aba "Pagamentos".');
+          }
+        } catch (paymentError) {
+          console.error('Error creating payment:', paymentError);
+        }
+      }
 
       const { data: conversationData } = await supabase
         .from('conversations')
@@ -169,6 +204,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
 
       loadRequests();
       onRequestUpdate?.();
+      alert('Chamado aceito com sucesso!');
     } catch (error) {
       console.error('Error accepting request:', error);
       alert('Erro ao aceitar chamado');

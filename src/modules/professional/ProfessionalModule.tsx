@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Briefcase, Bell, MessageCircle, Calendar, MapPin } from 'lucide-react';
+import { LayoutDashboard, Briefcase, Bell, MessageCircle, Calendar, MapPin, CreditCard } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BottomNav } from '../../components/BottomNav';
 import { ProfessionalDashboard } from './ProfessionalDashboard';
@@ -8,6 +8,7 @@ import { ServiceRequests } from './ServiceRequests';
 import Messages from './Messages';
 import { Schedule } from './Schedule';
 import GPSTracking from './GPSTracking';
+import { PaymentSettings } from './PaymentSettings';
 
 export function ProfessionalModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -22,6 +23,7 @@ export function ProfessionalModule() {
     { icon: Briefcase, label: 'Serviços', value: 'services' },
     { icon: Bell, label: 'Chamados', value: 'requests' },
     { icon: Calendar, label: 'Agenda', value: 'schedule' },
+    { icon: CreditCard, label: 'Pagamentos', value: 'payments' },
     { icon: MapPin, label: 'GPS', value: 'gps' },
     { icon: MessageCircle, label: 'Conversas', value: 'conversations' },
   ];
@@ -42,6 +44,8 @@ export function ProfessionalModule() {
         />;
       case 'schedule':
         return <Schedule />;
+      case 'payments':
+        return <PaymentSettings />;
       case 'gps':
         return <GPSTracking />;
       case 'conversations':
