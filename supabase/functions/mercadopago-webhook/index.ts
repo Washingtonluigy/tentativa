@@ -44,14 +44,74 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const accessToken = Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN");
+    const { data: existingTransaction } = await supabase
+      .from("mercadopago_transactions")
+      .select("*, professional_id")
+      .eq("payment_id", paymentId)
+      .maybeSingle();
+
+    let transaction = existingTransaction;
+    let professionalId = existingTransaction?.professional_id;
+
+    if (!transaction) {
+      const tempPaymentResponse = await fetch(
+        `https://api.mercadopago.com/v1/payments/${paymentId}`,
+        {
+          method: "GET",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("MERCADO_PAGO_ACCESS_TOKEN")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (tempPaymentResponse.ok) {
+        const tempPayment = await tempPaymentResponse.json();
+        const externalReference = tempPayment.external_reference;
+
+        if (externalReference) {
+          const serviceRequestId = externalReference.replace("service-", "");
+          const { data: txn } = await supabase
+            .from("mercadopago_transactions")
+            .select("*, professional_id")
+            .eq("service_request_id", serviceRequestId)
+            .maybeSingle();
+
+          transaction = txn;
+          professionalId = txn?.professional_id;
+        }
+      }
+    }
+
+    if (!transaction || !professionalId) {
+      console.log("Transaction not found for payment:", paymentId);
+      return new Response(JSON.stringify({ message: "Transaction not found" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: tokenData } = await supabase
+      .from("mercadopago_oauth_tokens")
+      .select("*")
+      .eq("professional_id", professionalId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!tokenData) {
+      console.log("No OAuth token found for professional:", professionalId);
+      return new Response(JSON.stringify({ message: "No OAuth token" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const paymentResponse = await fetch(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${accessToken}`,
+          "Authorization": `Bearer ${tokenData.access_token}`,
           "Content-Type": "application/json",
         },
       }
@@ -74,12 +134,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const serviceRequestId = externalReference.replace("service-", "");
-
-    const { data: transaction } = await supabase
-      .from("mercadopago_transactions")
-      .select("*")
-      .eq("service_request_id", serviceRequestId)
-      .single();
 
     if (transaction) {
       await supabase

@@ -102,6 +102,8 @@ Deno.serve(async (req: Request) => {
     const externalReference = `service-${serviceRequestId}`;
     const sponsorId = Deno.env.get("MERCADO_PAGO_APP_ID");
 
+    const appUrl = req.headers.get("origin") || req.headers.get("referer")?.split("?")[0] || "https://skhmvmpfaiomvuryuadj.supabase.co";
+
     const preferenceData = {
       items: [
         {
@@ -116,9 +118,9 @@ Deno.serve(async (req: Request) => {
         email: clientProfile?.email || `cliente-${serviceRequest.client_id}@example.com`,
       },
       back_urls: {
-        success: `${supabaseUrl}?payment=success`,
-        failure: `${supabaseUrl}?payment=failure`,
-        pending: `${supabaseUrl}?payment=pending`,
+        success: `${appUrl}?payment=success&service_request_id=${serviceRequestId}`,
+        failure: `${appUrl}?payment=failure&service_request_id=${serviceRequestId}`,
+        pending: `${appUrl}?payment=pending&service_request_id=${serviceRequestId}`,
       },
       auto_return: "approved",
       external_reference: externalReference,
