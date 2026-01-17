@@ -282,6 +282,39 @@ export function PaymentSettings() {
           </li>
         </ul>
       </div>
+
+      <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
+        <h4 className="font-semibold text-teal-900 mb-2 flex items-center gap-2">
+          <CheckCircle className="w-5 h-5" />
+          Como verificar no Mercado Pago?
+        </h4>
+        <p className="text-sm text-teal-800 mb-3">
+          Para ter certeza absoluta que a conexão é real, acesse sua conta oficial do Mercado Pago:
+        </p>
+        <ol className="text-sm text-teal-800 space-y-2 mb-4">
+          <li className="flex items-start gap-2">
+            <span className="text-teal-600 font-bold">1.</span>
+            <span>Acesse: <strong>Configurações</strong> → <strong>Segurança</strong></span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-teal-600 font-bold">2.</span>
+            <span>Procure por <strong>"Aplicações autorizadas"</strong></span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-teal-600 font-bold">3.</span>
+            <span>Você verá <strong>"AMAH"</strong> na lista com data de autorização</span>
+          </li>
+        </ol>
+        <a
+          href="https://www.mercadopago.com.br/settings/security"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition-all"
+        >
+          <ExternalLink className="w-4 h-4" />
+          Abrir Painel do Mercado Pago
+        </a>
+      </div>
     </div>
   );
 }
