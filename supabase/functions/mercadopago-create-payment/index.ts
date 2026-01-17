@@ -17,7 +17,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { serviceRequestId, amount } = await req.json();
-    const commissionPercentage = 20;
+    const commissionPercentage = 25;
 
     if (!serviceRequestId || !amount) {
       return new Response(
