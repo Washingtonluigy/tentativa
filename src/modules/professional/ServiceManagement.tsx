@@ -11,6 +11,7 @@ interface Service {
   price_video: number | null;
   price_local: number | null;
   is_active: boolean;
+  max_installments: number;
 }
 
 export function ServiceManagement() {
@@ -30,6 +31,7 @@ export function ServiceManagement() {
     priceMessage: '',
     priceVideo: '',
     priceLocal: '',
+    maxInstallments: '1',
   });
 
   useEffect(() => {
@@ -143,6 +145,7 @@ export function ServiceManagement() {
       price_message: formData.priceMessage ? parseFloat(formData.priceMessage) : null,
       price_video: formData.priceVideo ? parseFloat(formData.priceVideo) : null,
       price_local: formData.priceLocal ? parseFloat(formData.priceLocal) : null,
+      max_installments: parseInt(formData.maxInstallments) || 1,
       is_active: true,
       updated_at: new Date().toISOString(),
     };
@@ -161,7 +164,7 @@ export function ServiceManagement() {
         }]);
     }
 
-    setFormData({ serviceName: '', description: '', priceMessage: '', priceVideo: '', priceLocal: '' });
+    setFormData({ serviceName: '', description: '', priceMessage: '', priceVideo: '', priceLocal: '', maxInstallments: '1' });
     setEditingId(null);
     setShowForm(false);
     loadServices();
@@ -173,6 +176,7 @@ export function ServiceManagement() {
       description: service.description,
       priceMessage: service.price_message?.toString() || '',
       priceVideo: service.price_video?.toString() || '',
+      maxInstallments: service.max_installments?.toString() || '1',
       priceLocal: service.price_local?.toString() || '',
     });
     setEditingId(service.id);
@@ -210,7 +214,7 @@ export function ServiceManagement() {
             onClick={() => {
               setShowForm(false);
               setEditingId(null);
-              setFormData({ serviceName: '', description: '', priceMessage: '', priceVideo: '', priceLocal: '' });
+              setFormData({ serviceName: '', description: '', priceMessage: '', priceVideo: '', priceLocal: '', maxInstallments: '1' });
             }}
             className="text-gray-600 hover:text-gray-800"
           >
@@ -342,6 +346,26 @@ export function ServiceManagement() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Opções de Parcelamento
+            </label>
+            <select
+              value={formData.maxInstallments}
+              onChange={(e) => setFormData({ ...formData, maxInstallments: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+            >
+              <option value="1">Somente à vista (sem parcelamento)</option>
+              <option value="2">Até 2x sem juros</option>
+              <option value="3">Até 3x sem juros</option>
+              <option value="6">Até 6x sem juros</option>
+              <option value="12">Até 12x sem juros</option>
+            </select>
+            <p className="text-xs text-gray-600 mt-2">
+              O cliente poderá escolher pagar à vista (PIX/Cartão) ou parcelar no cartão até o limite que você definir
+            </p>
           </div>
 
           <button

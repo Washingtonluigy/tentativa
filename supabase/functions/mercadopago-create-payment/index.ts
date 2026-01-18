@@ -16,7 +16,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { serviceRequestId, amount } = await req.json();
+    const { serviceRequestId, amount, maxInstallments = 1 } = await req.json();
     const commissionPercentage = 25;
 
     if (!serviceRequestId || !amount) {
@@ -118,11 +118,8 @@ Deno.serve(async (req: Request) => {
         email: clientProfile?.email || `cliente-${serviceRequest.client_id}@example.com`,
       },
       payment_methods: {
-        excluded_payment_methods: [],
-        excluded_payment_types: [],
-        installments: 12,
+        installments: maxInstallments,
         default_installments: 1,
-        default_payment_method_id: "pix",
       },
       back_urls: {
         success: `${appUrl}?payment=success&service_request_id=${serviceRequestId}`,

@@ -141,15 +141,24 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
       if (professional.mercadopago_connected) {
         let amount = 1.00;
 
+        let maxInstallments = 1;
+
         if (professionalServiceId) {
           const { data: serviceData } = await supabase
             .from('professional_services')
-            .select('minimum_price')
+            .select('price_message, price_video, price_local, max_installments')
             .eq('id', professionalServiceId)
             .maybeSingle();
 
-          if (serviceData?.minimum_price) {
-            amount = serviceData.minimum_price;
+          if (serviceData) {
+            if (requestData.service_type === 'message' && serviceData.price_message) {
+              amount = parseFloat(serviceData.price_message);
+            } else if (requestData.service_type === 'video' && serviceData.price_video) {
+              amount = parseFloat(serviceData.price_video);
+            } else if ((requestData.service_type === 'home_service' || requestData.service_type === 'local') && serviceData.price_local) {
+              amount = parseFloat(serviceData.price_local);
+            }
+            maxInstallments = serviceData.max_installments || 1;
           }
         }
 
@@ -165,7 +174,8 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
             body: JSON.stringify({
               serviceRequestId: requestId,
               amount: amount,
-              commissionPercentage: 10
+              commissionPercentage: 10,
+              maxInstallments: maxInstallments
             }),
           });
 
