@@ -99,7 +99,7 @@ Deno.serve(async (req: Request) => {
       .update({ mercadopago_connected: true })
       .eq("id", professionalId);
 
-    const redirectUrl = `${Deno.env.get("SUPABASE_URL")?.replace('supabase.co', 'supabase.co')}?mp_connected=success`;
+    const appUrl = req.headers.get("origin") || req.headers.get("referer")?.split("/functions/")[0] || Deno.env.get("APP_URL") || "https://testesplit.netlify.app";
 
     return new Response(
       `
@@ -107,6 +107,7 @@ Deno.serve(async (req: Request) => {
       <html>
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Conectado com sucesso!</title>
         <style>
           body {
@@ -116,7 +117,7 @@ Deno.serve(async (req: Request) => {
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
           }
           .container {
             background: white;
@@ -147,7 +148,7 @@ Deno.serve(async (req: Request) => {
             margin: 0 0 30px;
           }
           .button {
-            background: #10b981;
+            background: #14b8a6;
             color: white;
             border: none;
             padding: 15px 30px;
@@ -156,6 +157,10 @@ Deno.serve(async (req: Request) => {
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
+            transition: all 0.3s;
+          }
+          .button:hover {
+            background: #0d9488;
           }
         </style>
       </head>
@@ -164,12 +169,12 @@ Deno.serve(async (req: Request) => {
           <div class="success-icon">✓</div>
           <h1>Conectado com sucesso!</h1>
           <p>Sua conta Mercado Pago foi conectada. Agora você pode receber pagamentos.</p>
-          <p style="font-size: 14px; margin-bottom: 20px;">Esta janela pode ser fechada.</p>
+          <a href="${appUrl}" class="button">Voltar para o App</a>
         </div>
         <script>
           setTimeout(() => {
-            window.close();
-          }, 3000);
+            window.location.href = "${appUrl}";
+          }, 2000);
         </script>
       </body>
       </html>

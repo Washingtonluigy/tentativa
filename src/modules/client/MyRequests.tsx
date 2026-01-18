@@ -196,6 +196,8 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
         return 'Recusado';
       case 'completed':
         return 'Concluído';
+      case 'cancelled':
+        return 'Cancelado';
       default:
         return status;
     }
@@ -211,6 +213,8 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
         return 'bg-red-50 border-red-200';
       case 'completed':
         return 'bg-blue-50 border-blue-200';
+      case 'cancelled':
+        return 'bg-gray-50 border-gray-200';
       default:
         return 'bg-gray-50 border-gray-200';
     }
@@ -398,7 +402,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               </button>
             )}
 
-            {request.status === 'pending' && (
+            {(request.status === 'pending' || request.status === 'accepted') && (
               <button
                 onClick={() => handleCancelRequest(request.id)}
                 className="w-full mt-2 sm:mt-3 bg-red-50 text-red-600 py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-red-100 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm border border-red-200"
@@ -504,10 +508,15 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               </button>
 
               <button
-                onClick={handleSkipPayment}
-                className="w-full bg-gray-100 text-gray-700 py-3 px-6 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                onClick={() => {
+                  handleCancelRequest(pendingPaymentRequest.id);
+                  setShowPaymentModal(false);
+                  setPendingPaymentRequest(null);
+                }}
+                className="w-full bg-red-50 text-red-600 py-3 px-6 rounded-xl font-semibold hover:bg-red-100 transition-colors border-2 border-red-200 flex items-center justify-center gap-2"
               >
-                Pagar Depois
+                <X className="w-5 h-5" />
+                Cancelar Chamado
               </button>
             </div>
 

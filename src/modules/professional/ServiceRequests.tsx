@@ -357,7 +357,9 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
       case 'rejected':
         return 'bg-red-100 text-red-700';
       case 'completed':
-        return 'bg-red-100 text-red-700';
+        return 'bg-green-100 text-green-700';
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
@@ -373,6 +375,8 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
         return 'Recusado';
       case 'completed':
         return 'Finalizado';
+      case 'cancelled':
+        return 'Cancelado pelo Cliente';
       default:
         return status;
     }
@@ -381,7 +385,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
   const filteredRequests = requests.filter(request => {
     if (activeTab === 'pending') return request.status === 'pending';
     if (activeTab === 'in_progress') return request.status === 'accepted';
-    if (activeTab === 'completed') return request.status === 'completed';
+    if (activeTab === 'completed') return request.status === 'completed' || request.status === 'cancelled';
     return true;
   });
 
