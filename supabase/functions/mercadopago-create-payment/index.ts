@@ -122,7 +122,6 @@ Deno.serve(async (req: Request) => {
         excluded_payment_types: [],
         installments: maxInstallments,
         default_installments: 1,
-        default_payment_method_id: "pix",
       },
       back_urls: {
         success: `${appUrl}?payment=success&service_request_id=${serviceRequestId}`,
@@ -133,12 +132,9 @@ Deno.serve(async (req: Request) => {
       external_reference: externalReference,
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
       statement_descriptor: "SERVICO AMAH",
+      marketplace: platformCollectorId,
+      marketplace_fee: applicationFee,
     };
-
-    console.log("⚠️ ATENÇÃO: Split/marketplace desabilitado temporariamente para permitir PIX");
-    console.log("Split será calculado mas NÃO enviado ao Mercado Pago");
-    console.log(`Taxa calculada: R$ ${applicationFee} (${commissionPercentage}%)`);
-    console.log(`Valor líquido profissional: R$ ${amount - applicationFee}`);
 
     console.log("Creating Mercado Pago preference with SPLIT:", JSON.stringify({
       amount,
