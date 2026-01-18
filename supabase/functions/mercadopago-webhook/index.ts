@@ -154,6 +154,7 @@ Deno.serve(async (req: Request) => {
         .from("service_requests")
         .update({
           payment_status: "paid",
+          payment_completed: true,
         })
         .eq("id", serviceRequestId);
 
@@ -163,6 +164,7 @@ Deno.serve(async (req: Request) => {
         .from("service_requests")
         .update({
           payment_status: "pending",
+          payment_completed: false,
         })
         .eq("id", serviceRequestId);
 
