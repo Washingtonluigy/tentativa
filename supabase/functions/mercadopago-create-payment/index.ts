@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
 
     const applicationFee = Math.round(amount * (commissionPercentage / 100) * 100) / 100;
     const externalReference = `service-${serviceRequestId}`;
-    const platformCollectorId = Deno.env.get("MERCADO_PAGO_COLLECTOR_ID");
+    const platformCollectorId = "3140548265";
 
     const appUrl = req.headers.get("origin") || req.headers.get("referer")?.split("?")[0] || "https://skhmvmpfaiomvuryuadj.supabase.co";
 
@@ -132,18 +132,19 @@ Deno.serve(async (req: Request) => {
       external_reference: externalReference,
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
       statement_descriptor: "SERVICO AMAH",
+      marketplace: platformCollectorId,
+      marketplace_fee: applicationFee,
     };
 
-    if (platformCollectorId) {
-      preferenceData.marketplace_fee = applicationFee;
-      preferenceData.marketplace = platformCollectorId;
-    }
-
-    console.log("Creating Mercado Pago preference with data:", JSON.stringify({
+    console.log("Creating Mercado Pago preference with SPLIT:", JSON.stringify({
       amount,
+      applicationFee,
+      netAmount: amount - applicationFee,
       maxInstallments,
       professionalId: professional.id,
       serviceRequestId,
+      marketplace: platformCollectorId,
+      marketplaceFee: applicationFee,
     }));
 
     const preferenceResponse = await fetch(
