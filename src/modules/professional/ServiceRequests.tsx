@@ -139,7 +139,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
         .eq('id', requestId);
 
       if (professional.mercadopago_connected) {
-        let amount = 100;
+        let amount = 1.00;
 
         if (professionalServiceId) {
           const { data: serviceData } = await supabase

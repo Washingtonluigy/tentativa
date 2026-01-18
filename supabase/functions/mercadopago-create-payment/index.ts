@@ -118,9 +118,11 @@ Deno.serve(async (req: Request) => {
         email: clientProfile?.email || `cliente-${serviceRequest.client_id}@example.com`,
       },
       payment_methods: {
+        excluded_payment_methods: [],
         excluded_payment_types: [],
         installments: 12,
         default_installments: 1,
+        default_payment_method_id: "pix",
       },
       back_urls: {
         success: `${appUrl}?payment=success&service_request_id=${serviceRequestId}`,

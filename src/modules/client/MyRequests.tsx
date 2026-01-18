@@ -61,7 +61,9 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
           filter: `client_id=eq.${user?.id}`
         },
         (payload: any) => {
-          if (payload.new.status === 'accepted' && payload.new.payment_link && !payload.new.payment_completed) {
+          const wasAcceptedNow = payload.old?.status !== 'accepted' && payload.new.status === 'accepted';
+
+          if (wasAcceptedNow && payload.new.payment_link && !payload.new.payment_completed) {
             loadRequests();
             const request = {
               id: payload.new.id,
