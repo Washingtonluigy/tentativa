@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
 
     const appUrl = req.headers.get("origin") || req.headers.get("referer")?.split("?")[0] || "https://skhmvmpfaiomvuryuadj.supabase.co";
 
-    const preferenceData = {
+    const preferenceData: any = {
       items: [
         {
           title: `Atendimento - ${professionalProfile?.full_name || 'Profissional'}`,
@@ -118,6 +118,8 @@ Deno.serve(async (req: Request) => {
         email: clientProfile?.email || `cliente-${serviceRequest.client_id}@example.com`,
       },
       payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [],
         installments: maxInstallments,
         default_installments: 1,
       },
@@ -129,9 +131,20 @@ Deno.serve(async (req: Request) => {
       auto_return: "approved",
       external_reference: externalReference,
       notification_url: `${supabaseUrl}/functions/v1/mercadopago-webhook`,
-      marketplace_fee: applicationFee,
-      marketplace: platformCollectorId || Deno.env.get("MERCADO_PAGO_APP_ID"),
+      statement_descriptor: "SERVICO AMAH",
     };
+
+    if (platformCollectorId) {
+      preferenceData.marketplace_fee = applicationFee;
+      preferenceData.marketplace = platformCollectorId;
+    }
+
+    console.log("Creating Mercado Pago preference with data:", JSON.stringify({
+      amount,
+      maxInstallments,
+      professionalId: professional.id,
+      serviceRequestId,
+    }));
 
     const preferenceResponse = await fetch(
       "https://api.mercadopago.com/checkout/preferences",
@@ -147,11 +160,16 @@ Deno.serve(async (req: Request) => {
 
     if (!preferenceResponse.ok) {
       const errorData = await preferenceResponse.text();
-      console.error("Mercado Pago preference error:", errorData);
+      console.error("Mercado Pago API Error Response:", errorData);
+      console.error("Request data sent:", JSON.stringify(preferenceData));
       throw new Error(`Failed to create payment preference: ${errorData}`);
     }
 
     const preferenceResult = await preferenceResponse.json();
+    console.log("Mercado Pago preference created successfully:", {
+      preferenceId: preferenceResult.id,
+      initPoint: preferenceResult.init_point,
+    });
 
     await supabase
       .from("mercadopago_transactions")
