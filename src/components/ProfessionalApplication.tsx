@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { ArrowLeft, Upload, X, User, MessageCircle, Phone } from 'lucide-react';
 
@@ -24,6 +24,62 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
   const [uploading, setUploading] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [states, setStates] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+
+  useEffect(() => {
+    loadStates();
+  }, []);
+
+  useEffect(() => {
+    if (formData.state) {
+      loadCities(formData.state);
+    } else {
+      setCities([]);
+    }
+  }, [formData.state]);
+
+  const loadStates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('brazilian_cities')
+        .select('state')
+        .eq('active', true)
+        .order('state');
+
+      if (error) throw error;
+
+      const uniqueStates = Array.from(new Set(data?.map(item => item.state) || []));
+      setStates(uniqueStates);
+    } catch (err) {
+      console.error('Erro ao carregar estados:', err);
+    }
+  };
+
+  const loadCities = async (state: string) => {
+    setLoadingCities(true);
+    setCities([]);
+    setFormData(prev => ({ ...prev, city: '' }));
+
+    try {
+      const { data, error } = await supabase
+        .from('brazilian_cities')
+        .select('city')
+        .eq('state', state)
+        .eq('active', true)
+        .order('city');
+
+      if (error) throw error;
+
+      setCities(data?.map(item => item.city) || []);
+    } catch (err) {
+      console.error('Erro ao carregar cidades:', err);
+      setCities([]);
+    } finally {
+      setLoadingCities(false);
+    }
+  };
 
   const resizeImage = (file: File): Promise<File> => {
     return new Promise((resolve, reject) => {
@@ -204,7 +260,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -352,32 +408,42 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                Estado *
+                Estado (Localização) *
               </label>
-              <input
-                type="text"
+              <select
                 name="state"
                 value={formData.state}
                 onChange={handleChange}
                 required
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ex: São Paulo"
-              />
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              >
+                <option value="">Selecione o estado onde o profissional atende</option>
+                {states.map(state => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">Selecione o estado onde o profissional atende</p>
             </div>
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                Cidade *
+                Cidade/Município *
               </label>
-              <input
-                type="text"
+              <select
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
                 required
-                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Ex: São Paulo"
-              />
+                disabled={!formData.state || loadingCities}
+                className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {!formData.state ? 'Selecione primeiro o estado' : loadingCities ? 'Carregando cidades...' : 'Selecione a cidade/município'}
+                </option>
+                {cities.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
             </div>
           </div>
 
