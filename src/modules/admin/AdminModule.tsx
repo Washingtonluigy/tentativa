@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, Folder, UserCog, DollarSign, ClipboardList, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, Folder, UserCog, DollarSign, ClipboardList } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BottomNav } from '../../components/BottomNav';
 import { AdminDashboard } from './AdminDashboard';
@@ -8,7 +8,6 @@ import { CategoryManagement } from './CategoryManagement';
 import { ClientManagement } from './ClientManagement';
 import { PlansManagement } from './PlansManagement';
 import PendingApplications from './PendingApplications';
-import { ServicePaymentManagement } from './ServicePaymentManagement';
 
 export function AdminModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,7 +18,6 @@ export function AdminModule() {
     { icon: Folder, label: 'Categorias', value: 'categories' },
     { icon: UserCog, label: 'Profissionais', value: 'professionals' },
     { icon: Users, label: 'Clientes', value: 'clients' },
-    { icon: CreditCard, label: 'Valores', value: 'payments' },
     { icon: DollarSign, label: 'Planos', value: 'plans' },
   ];
 
@@ -35,8 +33,6 @@ export function AdminModule() {
         return <CategoryManagement />;
       case 'clients':
         return <ClientManagement />;
-      case 'payments':
-        return <ServicePaymentManagement />;
       case 'plans':
         return <PlansManagement />;
       default:
