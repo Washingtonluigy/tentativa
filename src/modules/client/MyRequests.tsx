@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, Phone, MapPinIcon, Briefcase, Award, Video, Camera } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, MapPinIcon, Briefcase, Award, Video, Camera } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
@@ -558,14 +558,6 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               </div>
 
               <div className="space-y-3">
-                <div className="bg-white rounded-lg p-3 flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 mb-0.5">Telefone</p>
-                    <p className="text-sm font-semibold text-gray-900">{selectedRequest.professional_phone}</p>
-                  </div>
-                </div>
-
                 <div className="bg-white rounded-lg p-3 flex items-start gap-3">
                   <MapPinIcon className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
                   <div>
