@@ -93,6 +93,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     const { data } = await supabase
       .from('categories')
       .select('*')
+      .eq('is_visible', true)
       .order('name');
 
     if (data) {

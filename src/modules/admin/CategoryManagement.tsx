@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Folder, Edit, Trash2, Upload, X } from 'lucide-react';
+import { Plus, Folder, Edit, Trash2, Upload, X, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationPopup } from '../../components/NotificationPopup';
@@ -9,6 +9,7 @@ interface Category {
   name: string;
   description: string;
   image_url: string | null;
+  is_visible: boolean;
   created_at: string;
 }
 
@@ -171,6 +172,22 @@ export function CategoryManagement() {
     }
   };
 
+  const toggleVisibility = async (id: string, currentVisibility: boolean) => {
+    const { error } = await supabase
+      .from('categories')
+      .update({ is_visible: !currentVisibility })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao alterar visibilidade:', error);
+      setNotificationMessage('Erro ao alterar visibilidade: ' + error.message);
+      setShowNotification(true);
+      return;
+    }
+
+    loadCategories();
+  };
+
   const clearImage = () => {
     setImageFile(null);
     setImagePreview('');
@@ -315,12 +332,32 @@ export function CategoryManagement() {
                 </div>
               )}
               <div className="flex-1">
-                <h3 className="font-semibold text-gray-800">{category.name}</h3>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-gray-800">{category.name}</h3>
+                  {!category.is_visible && (
+                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">
+                      Oculta
+                    </span>
+                  )}
+                </div>
                 {category.description && (
                   <p className="text-sm text-gray-600 mt-1">{category.description}</p>
                 )}
               </div>
               <div className="flex gap-2">
+                <button
+                  onClick={() => toggleVisibility(category.id, category.is_visible)}
+                  className={`p-2 hover:bg-gray-100 rounded-lg transition ${
+                    category.is_visible ? 'text-green-600' : 'text-gray-400'
+                  }`}
+                  title={category.is_visible ? 'Ocultar categoria' : 'Mostrar categoria'}
+                >
+                  {category.is_visible ? (
+                    <Eye className="w-4 h-4" />
+                  ) : (
+                    <EyeOff className="w-4 h-4" />
+                  )}
+                </button>
                 <button
                   onClick={() => handleEdit(category)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
