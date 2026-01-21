@@ -695,53 +695,55 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           </button>
         </div>
 
-      <div className="px-4 py-2 space-y-4">
+      <div className="px-4 py-2">
         <button
           onClick={handleMyCityClick}
-          className="relative w-full h-32 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group bg-gradient-to-r from-teal-500 to-teal-600"
+          className="relative w-full h-28 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group bg-gradient-to-r from-teal-500 to-teal-600 mb-4"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-teal-600/20 to-transparent group-hover:from-teal-700/30 transition-all duration-300"></div>
 
-          <div className="relative h-full flex items-center justify-center gap-3 p-6">
-            <MapPin className="w-10 h-10 text-white drop-shadow-lg" />
+          <div className="relative h-full flex items-center justify-center gap-3 p-4">
+            <MapPin className="w-8 h-8 text-white drop-shadow-lg" />
             <div className="text-left">
-              <h3 className="font-bold text-white text-2xl mb-1 drop-shadow-lg">
+              <h3 className="font-bold text-white text-xl mb-1 drop-shadow-lg">
                 Minha Cidade
               </h3>
-              <p className="text-white/95 text-sm font-medium drop-shadow">
+              <p className="text-white/95 text-xs font-medium drop-shadow">
                 {userCity && userState ? `${userCity} - ${userState}` : 'Ver todos os profissionais da região'}
               </p>
             </div>
           </div>
         </button>
 
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            onClick={() => setSelectedCategory(category.id)}
-            className="relative w-full h-40 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
-          >
-            <div
-              className="absolute inset-0 bg-cover bg-center"
-              style={{
-                backgroundImage: `url(${category.image_url || getCategoryImage(category.name)})`,
-              }}
+        <div className="grid grid-cols-2 gap-3">
+          {categories.map((category) => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategory(category.id)}
+              className="relative w-full h-36 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] group"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent group-hover:from-black/60 transition-all duration-300"></div>
-            </div>
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: `url(${category.image_url || getCategoryImage(category.name)})`,
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:from-black/70 transition-all duration-300"></div>
+              </div>
 
-            <div className="relative h-full flex flex-col justify-end p-6">
-              <h3 className="font-bold text-white text-2xl mb-2 drop-shadow-lg">
-                {category.name}
-              </h3>
-              {category.description && (
-                <p className="text-white/90 text-sm font-medium drop-shadow line-clamp-2">
-                  {category.description}
-                </p>
-              )}
-            </div>
-          </button>
-        ))}
+              <div className="relative h-full flex flex-col justify-end p-3">
+                <h3 className="font-bold text-white text-base mb-1 drop-shadow-lg leading-tight">
+                  {category.name}
+                </h3>
+                {category.description && (
+                  <p className="text-white/90 text-xs font-medium drop-shadow line-clamp-2 leading-tight">
+                    {category.description}
+                  </p>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
         {categories.length === 0 && (
