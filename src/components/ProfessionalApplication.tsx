@@ -315,7 +315,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
             <div>
               <h3 className="font-bold text-sm sm:text-base mb-1">Você Profissional!</h3>
               <p className="text-xs sm:text-sm leading-relaxed">
-                Para utilização do app a fim de atender nossos clientes há uma <span className="font-bold">adesão de R$ 200,00</span> para acesso e gestão de clientes e serviços.
+                Para utilização do app a fim de atender nossos clientes há uma <span className="font-bold">taxa de adesão</span> para acesso e gestão de clientes e serviços.
               </p>
             </div>
           </div>
