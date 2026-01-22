@@ -11,6 +11,7 @@ import { PlansView } from './PlansView';
 import { ClientProfile } from './ClientProfile';
 import { MyCity } from './MyCity';
 import Messages from './Messages';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 export function ClientModule() {
   const [activeTab, setActiveTab] = useState('professionals');
@@ -20,11 +21,12 @@ export function ClientModule() {
   } | null>(null);
   const [selectedChatProfessionalId, setSelectedChatProfessionalId] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const { unreadCount } = useNotifications();
 
   const navItems = [
     { icon: Users, label: 'Profiss.', value: 'professionals' },
     { icon: FileText, label: 'Chamad.', value: 'requests' },
-    { icon: MessageCircle, label: 'Chat', value: 'conversations' },
+    { icon: MessageCircle, label: 'Chat', value: 'conversations', badge: unreadCount },
     { icon: DollarSign, label: 'Planos', value: 'plans' },
     { icon: Home, label: 'Minha Cidade', value: 'my-city' },
     { icon: MapPin, label: 'GPS', value: 'gps' },

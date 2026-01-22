@@ -21,8 +21,39 @@ export default function Messages() {
 
   useEffect(() => {
     loadConversations();
-    const interval = setInterval(loadConversations, 5000);
-    return () => clearInterval(interval);
+
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('professional-conversations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'conversations',
+          filter: `professional_id=eq.${user.id}`
+        },
+        () => {
+          loadConversations();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          loadConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const loadConversations = async () => {

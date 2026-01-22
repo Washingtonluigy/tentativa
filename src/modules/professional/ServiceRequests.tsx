@@ -53,6 +53,29 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
 
   useEffect(() => {
     loadRequests();
+
+    if (!user) return;
+
+    const channel = supabase
+      .channel('service-requests-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'service_requests',
+          filter: `professional_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Service request changed:', payload);
+          loadRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const loadRequests = async () => {

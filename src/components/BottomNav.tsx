@@ -5,6 +5,7 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   value: string;
+  badge?: number;
 }
 
 interface BottomNavProps {
@@ -29,10 +30,17 @@ export function BottomNav({ items, activeTab, onTabChange }: BottomNavProps) {
                 isActive ? 'text-purple-600' : 'text-gray-400 hover:text-gray-600'
               }`}
             >
-              <div className={`p-2 rounded-xl transition-all ${
-                isActive ? 'bg-gradient-to-br from-purple-50 to-purple-100' : ''
-              }`}>
-                <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
+              <div className="relative">
+                <div className={`p-2 rounded-xl transition-all ${
+                  isActive ? 'bg-gradient-to-br from-purple-50 to-purple-100' : ''
+                }`}>
+                  <Icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5]' : 'stroke-[2]'}`} />
+                </div>
+                {item.badge && item.badge > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white shadow-lg">
+                    {item.badge > 9 ? '9+' : item.badge}
+                  </div>
+                )}
               </div>
               <span className={`text-[11px] mt-1 font-semibold ${
                 isActive ? 'text-purple-600' : 'text-gray-500'

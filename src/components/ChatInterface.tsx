@@ -37,9 +37,25 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
     loadMessages();
     checkServiceRequestPaymentStatus();
 
-    const interval = setInterval(loadMessages, 3000);
+    const channel = supabase
+      .channel(`messages-${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`
+        },
+        (payload) => {
+          console.log('Message changed:', payload);
+          loadMessages();
+        }
+      )
+      .subscribe();
+
     return () => {
-      clearInterval(interval);
+      supabase.removeChannel(channel);
       if (paymentCheckInterval.current) {
         clearInterval(paymentCheckInterval.current);
       }

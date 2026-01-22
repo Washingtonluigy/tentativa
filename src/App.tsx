@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ForgotPassword } from './components/ForgotPassword';
@@ -8,6 +9,7 @@ import { AdminModule } from './modules/admin/AdminModule';
 import { ProfessionalModule } from './modules/professional/ProfessionalModule';
 import { ClientModule } from './modules/client/ClientModule';
 import { InstallPWAPrompt } from './components/InstallPWAPrompt';
+import { NotificationPermissionPrompt } from './components/NotificationPermissionPrompt';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -53,27 +55,38 @@ function AppContent() {
     );
   }
 
-  switch (user.role) {
-    case 'admin':
-      return <AdminModule />;
-    case 'professional':
-      return <ProfessionalModule />;
-    case 'client':
-      return <ClientModule />;
-    default:
-      return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-          <p className="text-gray-600">Tipo de usuário inválido</p>
-        </div>
-      );
-  }
+  const renderModule = () => {
+    switch (user.role) {
+      case 'admin':
+        return <AdminModule />;
+      case 'professional':
+        return <ProfessionalModule />;
+      case 'client':
+        return <ClientModule />;
+      default:
+        return (
+          <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+            <p className="text-gray-600">Tipo de usuário inválido</p>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <>
+      <NotificationPermissionPrompt />
+      {renderModule()}
+    </>
+  );
 }
 
 function App() {
   return (
     <AuthProvider>
-      <InstallPWAPrompt />
-      <AppContent />
+      <NotificationProvider>
+        <InstallPWAPrompt />
+        <AppContent />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

@@ -9,10 +9,12 @@ import Messages from './Messages';
 import { Schedule } from './Schedule';
 import GPSTracking from './GPSTracking';
 import { PaymentSettings } from './PaymentSettings';
+import { useNotifications } from '../../contexts/NotificationContext';
 
 export function ProfessionalModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dashboardKey, setDashboardKey] = useState(0);
+  const { unreadCount } = useNotifications();
 
   const refreshDashboard = () => {
     setDashboardKey(prev => prev + 1);
@@ -25,7 +27,7 @@ export function ProfessionalModule() {
     { icon: Calendar, label: 'Agenda', value: 'schedule' },
     { icon: CreditCard, label: 'Pagamentos', value: 'payments' },
     { icon: MapPin, label: 'GPS', value: 'gps' },
-    { icon: MessageCircle, label: 'Conversas', value: 'conversations' },
+    { icon: MessageCircle, label: 'Conversas', value: 'conversations', badge: unreadCount },
   ];
 
   const renderContent = () => {
