@@ -447,39 +447,79 @@ export function ProfessionalManagement() {
   };
 
   const handleEdit = async (professional: Professional) => {
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('photo_url')
-      .eq('user_id', professional.user_id)
-      .maybeSingle();
-    const { data: profData } = await supabase
-      .from('professionals')
-      .select('professional_references, description')
-      .eq('id', professional.id)
-      .maybeSingle();
-    const { data: userData } = await supabase
-      .from('users')
-      .select('regional_price_id, state, city, password_hash, email')
-      .eq('id', professional.user_id)
-      .eq('role', 'professional')
-      .maybeSingle();
+    try {
+      console.log('Iniciando edição do profissional:', professional.id);
 
-    setFormData({
-      fullName: professional.full_name,
-      email: userData?.email || professional.email,
-      password: userData?.password_hash || '',
-      phone: professional.phone,
-      categoryId: professional.category_id,
-      experienceYears: professional.experience_years.toString(),
-      references: profData?.professional_references || '',
-      description: profData?.description || '',
-      regionalPriceId: userData?.regional_price_id || '',
-      state: userData?.state || '',
-      city: userData?.city || '',
-    });
-    setPhotoPreview(profileData?.photo_url || '');
-    setEditingId(professional.id);
-    setShowForm(true);
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('photo_url')
+        .eq('user_id', professional.user_id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Erro ao carregar perfil:', profileError);
+        setNotificationMessage('Erro ao carregar dados do perfil');
+        setShowNotification(true);
+        return;
+      }
+
+      const { data: profData, error: profError } = await supabase
+        .from('professionals')
+        .select('professional_references, description')
+        .eq('id', professional.id)
+        .maybeSingle();
+
+      if (profError) {
+        console.error('Erro ao carregar dados profissionais:', profError);
+        setNotificationMessage('Erro ao carregar dados profissionais');
+        setShowNotification(true);
+        return;
+      }
+
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('regional_price_id, state, city, password_hash, email')
+        .eq('id', professional.user_id)
+        .eq('role', 'professional')
+        .maybeSingle();
+
+      if (userError) {
+        console.error('Erro ao carregar dados do usuário:', userError);
+        setNotificationMessage('Erro ao carregar dados do usuário');
+        setShowNotification(true);
+        return;
+      }
+
+      console.log('Dados carregados com sucesso');
+
+      // Carregar cidades do estado se necessário
+      if (userData?.state) {
+        await loadCitiesByState(userData.state);
+      }
+
+      setFormData({
+        fullName: professional.full_name,
+        email: userData?.email || professional.email,
+        password: userData?.password_hash || '',
+        phone: professional.phone,
+        categoryId: professional.category_id,
+        experienceYears: professional.experience_years.toString(),
+        references: profData?.professional_references || '',
+        description: profData?.description || '',
+        regionalPriceId: userData?.regional_price_id || '',
+        state: userData?.state || '',
+        city: userData?.city || '',
+      });
+      setPhotoPreview(profileData?.photo_url || '');
+      setEditingId(professional.id);
+      setShowForm(true);
+
+      console.log('Formulário de edição aberto');
+    } catch (error: any) {
+      console.error('Erro ao editar profissional:', error);
+      setNotificationMessage('Erro ao carregar dados para edição: ' + error.message);
+      setShowNotification(true);
+    }
   };
 
   const handleDelete = async (id: string) => {

@@ -142,7 +142,8 @@ export default function PendingApplications() {
               professional_references: application.professional_references,
               description: application.professional_references,
               minimum_price: 0,
-              status: 'active'
+              status: 'active',
+              registration_number: application.registration_number
             }]);
         }
       }
