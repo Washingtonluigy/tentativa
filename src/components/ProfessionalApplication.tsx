@@ -541,7 +541,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
                   Informação Importante
                 </p>
                 <p className="mt-1 text-sm text-blue-700">
-                  Para profissionais aprovados haverá uma taxa de adesão para expor seus serviços na plataforma - confira com nosso SAC
+                  Após o envio de suas informações, nossa equipe irá analisar e sendo aprovado entraremos em contato pelo número cadastrado
                 </p>
               </div>
             </div>
