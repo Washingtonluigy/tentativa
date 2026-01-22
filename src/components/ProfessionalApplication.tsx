@@ -270,19 +270,22 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-3 sm:p-4">
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-6 sm:p-8 max-w-md w-full text-center">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-6 sm:p-8 max-w-lg w-full text-center">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Solicitação Enviada!</h2>
-          <p className="text-sm sm:text-base text-gray-600 mb-6">
-            Recebemos sua solicitação de cadastro. Nossa equipe irá avaliar e entrar em contato em breve.
-          </p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Solicitação Enviada!</h2>
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-left">
+            <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
+              Após o envio das informações, se aprovado, nossa equipe entrará em contato para passar mais informações
+              <span className="font-semibold"> (acesso ao sistema admin)</span> e encaminhar os meios de pagamento da adesão.
+            </p>
+          </div>
           <button
             onClick={onBack}
-            className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base"
+            className="w-full bg-blue-600 text-white py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm sm:text-base shadow-lg"
           >
             Voltar para Login
           </button>
@@ -301,6 +304,22 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
           <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           <span className="text-sm sm:text-base">Voltar</span>
         </button>
+
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4 sm:p-5 rounded-xl mb-4 sm:mb-6 shadow-lg">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 mt-1">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm sm:text-base mb-1">Você Profissional!</h3>
+              <p className="text-xs sm:text-sm leading-relaxed">
+                Para utilização do app a fim de atender nossos clientes há uma <span className="font-bold">adesão de R$ 200,00</span> para acesso e gestão de clientes e serviços.
+              </p>
+            </div>
+          </div>
+        </div>
 
         <h2 className="text-xl sm:text-3xl font-bold text-gray-900 mb-2">Seja um Profissional Parceiro</h2>
         <p className="text-xs sm:text-base text-gray-600 mb-4 sm:mb-6">

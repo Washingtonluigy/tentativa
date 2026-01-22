@@ -117,7 +117,23 @@ export function Login({ onRegisterClick, onProfessionalClick, onForgotPasswordCl
           </button>
         </form>
 
-        <div className="mt-8 space-y-4">
+        <div className="mt-6 space-y-4">
+          <button
+            onClick={onProfessionalClick}
+            className="w-full py-4 px-4 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-all duration-200 text-base shadow-md hover:shadow-lg"
+          >
+            Sou Profissional
+          </button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">ou</span>
+            </div>
+          </div>
+
           <div className="text-center">
             <p className="text-gray-600 text-base">
               Não tem uma conta?{' '}
@@ -129,22 +145,6 @@ export function Login({ onRegisterClick, onProfessionalClick, onForgotPasswordCl
               </button>
             </p>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">ou</span>
-            </div>
-          </div>
-
-          <button
-            onClick={onProfessionalClick}
-            className="w-full py-3 px-4 border-2 border-blue-600 text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors"
-          >
-            Sou Profissional
-          </button>
         </div>
       </div>
     </div>
