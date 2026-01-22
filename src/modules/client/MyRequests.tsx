@@ -236,10 +236,12 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   };
 
   const handlePayment = (request: Request) => {
-    if (request.payment_link) {
-      // Abrir link de pagamento em nova aba
-      window.open(request.payment_link, '_blank');
+    if (!request.payment_link) {
+      alert('Link de pagamento ainda não foi gerado. Aguarde o profissional processar seu chamado.');
+      return;
     }
+
+    window.open(request.payment_link, '_blank');
   };
 
   const handlePaymentCompleted = async (requestId: string) => {
@@ -394,14 +396,23 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               </span>
             </div>
 
-            {request.status === 'accepted' && request.payment_link && !request.payment_completed && (
-              <button
-                onClick={() => handlePayment(request)}
-                className="w-full mt-2 sm:mt-3 bg-blue-600 text-white py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm"
-              >
-                <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" />
-                Realizar Pagamento
-              </button>
+            {request.status === 'accepted' && !request.payment_completed && (
+              <>
+                {request.payment_link ? (
+                  <button
+                    onClick={() => handlePayment(request)}
+                    className="w-full mt-2 sm:mt-3 bg-blue-600 text-white py-2 px-3 sm:px-4 rounded-lg font-medium hover:bg-blue-700 transition flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm shadow-md hover:shadow-lg"
+                  >
+                    <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" />
+                    Realizar Pagamento
+                  </button>
+                ) : (
+                  <div className="w-full mt-2 sm:mt-3 bg-yellow-50 border-2 border-yellow-200 text-yellow-800 py-2 px-3 sm:px-4 rounded-lg text-center text-xs sm:text-sm">
+                    <Clock size={16} className="inline sm:w-[18px] sm:h-[18px] mr-1" />
+                    Aguardando profissional gerar link de pagamento...
+                  </div>
+                )}
+              </>
             )}
 
             {(request.status === 'pending' || request.status === 'accepted') && (
@@ -493,21 +504,27 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
             </div>
 
             <div className="space-y-3">
-              <button
-                onClick={() => {
-                  handlePayment(pendingPaymentRequest);
-                  // Após abrir o link, perguntar se pagou
-                  setTimeout(() => {
-                    if (confirm('Você concluiu o pagamento?')) {
-                      handlePaymentCompleted(pendingPaymentRequest.id);
-                    }
-                  }, 2000);
-                }}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-              >
-                <ExternalLink className="w-5 h-5" />
-                Abrir Página de Pagamento
-              </button>
+              {pendingPaymentRequest.payment_link ? (
+                <button
+                  onClick={() => {
+                    handlePayment(pendingPaymentRequest);
+                    setTimeout(() => {
+                      if (confirm('Você concluiu o pagamento?')) {
+                        handlePaymentCompleted(pendingPaymentRequest.id);
+                      }
+                    }, 2000);
+                  }}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-4 px-6 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  Abrir Página de Pagamento
+                </button>
+              ) : (
+                <div className="w-full bg-yellow-50 border-2 border-yellow-300 text-yellow-800 py-4 px-6 rounded-xl font-medium text-center flex items-center justify-center gap-2">
+                  <Clock className="w-5 h-5 animate-pulse" />
+                  <span>Aguardando profissional gerar link de pagamento...</span>
+                </div>
+              )}
 
               <button
                 onClick={() => {
