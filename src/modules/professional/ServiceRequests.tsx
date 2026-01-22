@@ -49,6 +49,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
     onConfirm: () => void;
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [videoCallRoom, setVideoCallRoom] = useState<{ roomId: string; userName: string } | null>(null);
+  const [showVideoInstructions, setShowVideoInstructions] = useState(false);
 
   useEffect(() => {
     loadRequests();
@@ -214,7 +215,12 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
 
       loadRequests();
       onRequestUpdate?.();
-      alert('Chamado aceito com sucesso!');
+
+      if (requestData.service_type === 'video') {
+        setShowVideoInstructions(true);
+      } else {
+        alert('Chamado aceito com sucesso!');
+      }
     } catch (error) {
       console.error('Error accepting request:', error);
       alert('Erro ao aceitar chamado');
@@ -680,6 +686,115 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
             loadRequests();
           }}
         />
+      )}
+
+      {showVideoInstructions && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r from-teal-600 to-teal-700 p-6 text-white">
+              <div className="flex items-center gap-3">
+                <Video className="w-8 h-8" />
+                <div>
+                  <h2 className="text-2xl font-bold">Atendimento por Vídeo Chamada</h2>
+                  <p className="text-teal-100 text-sm mt-1">Siga os passos abaixo para iniciar o atendimento</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <div className="flex items-start gap-3">
+                  <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-blue-900 mb-2">Como funciona o atendimento por vídeo:</h3>
+                    <p className="text-blue-800 text-sm">
+                      O sistema usa Jitsi Meet para realizar chamadas de vídeo. Você precisa criar uma sala e enviar o link ao cliente através do chat.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
+                  Acesse o Jitsi Meet
+                </h3>
+                <div className="ml-8 space-y-3">
+                  <p className="text-gray-700">Acesse <a href="https://meet.jit.si" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">https://meet.jit.si</a></p>
+                  <p className="text-gray-600 text-sm">Se não tiver conta, crie uma gratuitamente ou use como visitante.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
+                  Crie uma nova reunião
+                </h3>
+                <div className="ml-8 space-y-3">
+                  <p className="text-gray-700">Clique em <span className="bg-gray-100 px-2 py-1 rounded font-medium">"Iniciar reunião"</span> ou <span className="bg-gray-100 px-2 py-1 rounded font-medium">"Start meeting"</span></p>
+                  <p className="text-gray-600 text-sm">Dê um nome para a sala (exemplo: "atendimento-cliente-123")</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
+                  Configure-se como anfitrião
+                </h3>
+                <div className="ml-8 space-y-3">
+                  <p className="text-gray-700">Ao entrar na sala, clique no botão <span className="bg-gray-100 px-2 py-1 rounded font-medium">"Sou o anfitrião"</span> ou <span className="bg-gray-100 px-2 py-1 rounded font-medium">"I am the host"</span></p>
+                  <p className="text-gray-600 text-sm">Isso garante que você terá controle total da reunião.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">4</span>
+                  Copie o link da sala
+                </h3>
+                <div className="ml-8 space-y-3">
+                  <p className="text-gray-700">Clique no ícone de compartilhamento ou informações para copiar o link da sala</p>
+                  <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                    <p className="text-xs text-gray-500 mb-1">Exemplo de link:</p>
+                    <p className="text-sm text-gray-700 font-mono break-all">https://meet.jit.si/atendimento-cliente-123</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">5</span>
+                  Envie o link ao cliente
+                </h3>
+                <div className="ml-8 space-y-3">
+                  <p className="text-gray-700">Use o chat do sistema para enviar o link ao cliente</p>
+                  <p className="text-gray-600 text-sm">O cliente poderá clicar no link e entrar diretamente na sala de vídeo!</p>
+                </div>
+              </div>
+
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-green-900 mb-2">Dica importante:</h3>
+                    <p className="text-green-800 text-sm">
+                      Agora os links enviados pelo chat são clicáveis! O cliente poderá simplesmente clicar no link que você enviar e será redirecionado automaticamente para a chamada de vídeo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-6 flex gap-3">
+              <button
+                onClick={() => setShowVideoInstructions(false)}
+                className="flex-1 bg-gradient-to-r from-teal-600 to-teal-700 text-white px-6 py-3 rounded-lg font-semibold hover:from-teal-700 hover:to-teal-800 transition-all shadow-lg hover:shadow-xl"
+              >
+                Entendi, vamos começar!
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

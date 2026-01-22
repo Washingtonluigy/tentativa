@@ -182,6 +182,29 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
     }
   };
 
+  const renderMessageContent = (content: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = content.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:opacity-80 transition-opacity font-medium"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
     <div className="fixed inset-0 flex flex-col bg-gradient-to-b from-gray-50 to-white z-50">
       <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg flex-shrink-0">
@@ -277,7 +300,7 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
                 {!msg.is_mine && (
                   <div className="text-[10px] sm:text-xs font-semibold text-purple-600 mb-1">{msg.sender_name}</div>
                 )}
-                <div className="text-sm sm:text-[15px] leading-relaxed break-words">{msg.content}</div>
+                <div className="text-sm sm:text-[15px] leading-relaxed break-words">{renderMessageContent(msg.content)}</div>
                 <div className={`text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 ${msg.is_mine ? 'text-purple-100' : 'text-gray-400'}`}>
                   {new Date(msg.created_at).toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
