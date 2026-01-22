@@ -279,8 +279,7 @@ export default function ProfessionalApplication({ onBack }: ProfessionalApplicat
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3">Solicitação Enviada!</h2>
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-left">
             <p className="text-sm sm:text-base text-gray-700 leading-relaxed">
-              Após o envio das informações, se aprovado, nossa equipe entrará em contato para passar mais informações
-              <span className="font-semibold"> (acesso ao sistema admin)</span> e encaminhar os meios de pagamento da adesão.
+              Após o envio de suas informações, nossa equipe irá analisar e sendo aprovado entraremos em contato pelo número cadastrado.
             </p>
           </div>
           <button
