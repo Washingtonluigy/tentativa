@@ -102,86 +102,142 @@ Deno.serve(async (req: Request) => {
     const appUrl = req.headers.get("origin") || req.headers.get("referer")?.split("/functions/")[0] || Deno.env.get("APP_URL") || "https://testesplit.netlify.app";
 
     return new Response(
-      `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Conectado com sucesso!</title>
-        <style>
-          body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-          }
-          .container {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-          }
-          .success-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            background: #10b981;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
-            color: white;
-          }
-          h1 {
-            color: #1f2937;
-            margin: 0 0 10px;
-          }
-          p {
-            color: #6b7280;
-            margin: 0 0 30px;
-          }
-          .button {
-            background: #14b8a6;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 16px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.3s;
-          }
-          .button:hover {
-            background: #0d9488;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="success-icon">✓</div>
-          <h1>Conectado com sucesso!</h1>
-          <p>Sua conta Mercado Pago foi conectada. Agora você pode receber pagamentos.</p>
-          <a href="${appUrl}" class="button">Voltar para o App</a>
-        </div>
-        <script>
-          setTimeout(() => {
-            window.location.href = "${appUrl}";
-          }, 2000);
-        </script>
-      </body>
-      </html>
-      `,
+      `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="1;url=${appUrl}">
+  <title>Conta Conectada!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      padding: 50px 30px;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 450px;
+      width: 100%;
+      animation: slideUp 0.4s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .success-icon {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 25px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      color: white;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      animation: checkmark 0.6s ease-in-out;
+    }
+    @keyframes checkmark {
+      0% { transform: scale(0); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    h1 {
+      color: #1f2937;
+      font-size: 28px;
+      font-weight: 700;
+      margin: 0 0 15px;
+    }
+    p {
+      color: #6b7280;
+      font-size: 17px;
+      line-height: 1.6;
+      margin: 0 0 35px;
+    }
+    .loading {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      background: #667eea;
+      border-radius: 50%;
+      animation: bounce 1.4s infinite ease-in-out;
+    }
+    .dot:nth-child(1) { animation-delay: -0.32s; }
+    .dot:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+    .redirect-text {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success-icon">✓</div>
+    <h1>Conta Conectada!</h1>
+    <p>Sua conta do Mercado Pago foi conectada com sucesso. Agora você pode receber pagamentos através da plataforma.</p>
+    <div class="loading">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <p class="redirect-text">Redirecionando automaticamente...</p>
+  </div>
+  <script>
+    // Múltiplos métodos de redirecionamento para garantir compatibilidade
+    function redirectToApp() {
+      const appUrl = "${appUrl}";
+
+      // Tentar fechar a janela se foi aberta como popup
+      if (window.opener) {
+        window.opener.postMessage({ type: 'MERCADOPAGO_CONNECTED' }, '*');
+        window.close();
+      }
+
+      // Redirecionar após um breve delay
+      setTimeout(() => {
+        window.location.replace(appUrl);
+      }, 1000);
+    }
+
+    // Executar ao carregar
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', redirectToApp);
+    } else {
+      redirectToApp();
+    }
+  </script>
+</body>
+</html>`,
       {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0"
+        },
       }
     );
   } catch (error) {
