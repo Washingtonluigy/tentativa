@@ -120,7 +120,7 @@ export function Login({ onRegisterClick, onProfessionalClick, onForgotPasswordCl
         <div className="mt-6 space-y-4">
           <button
             onClick={onProfessionalClick}
-            className="w-full py-4 px-4 border-2 border-red-600 text-red-600 font-semibold rounded-xl hover:bg-red-50 transition-all duration-200 text-base shadow-md hover:shadow-lg"
+            className="w-full py-4 px-4 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-all duration-200 text-base shadow-md hover:shadow-lg"
           >
             Sou Profissional
           </button>

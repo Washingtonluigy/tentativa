@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X, MessageSquare, Video, Home } from 'lucide-react';
+import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X, MessageSquare, Video, Home, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Category {
@@ -48,6 +48,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const [availableCities, setAvailableCities] = useState<{ id: string; city: string }[]>([]);
   const [selectedFilterState, setSelectedFilterState] = useState<string>('');
   const [selectedFilterCity, setSelectedFilterCity] = useState<string>('');
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadCategories();
@@ -316,6 +317,49 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
     setProfessionalsByCategory(profsByCategory);
   };
 
+  const toggleDescription = (professionalId: string) => {
+    setExpandedDescriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(professionalId)) {
+        newSet.delete(professionalId);
+      } else {
+        newSet.add(professionalId);
+      }
+      return newSet;
+    });
+  };
+
+  const renderDescription = (professionalId: string, description: string) => {
+    if (!description) return null;
+
+    const isExpanded = expandedDescriptions.has(professionalId);
+    const shouldShowButton = description.length > 150;
+
+    return (
+      <div className="mb-3">
+        <p className={`text-sm text-gray-600 ${!isExpanded && shouldShowButton ? 'line-clamp-3' : ''}`}>
+          {description}
+        </p>
+        {shouldShowButton && (
+          <button
+            onClick={() => toggleDescription(professionalId)}
+            className="text-teal-600 text-sm font-medium mt-1 flex items-center gap-1 hover:text-teal-700 transition"
+          >
+            {isExpanded ? (
+              <>
+                Ver menos <ChevronUp className="w-4 h-4" />
+              </>
+            ) : (
+              <>
+                Ver mais <ChevronDown className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   const handleMyCityClick = () => {
     setSelectedFilterState(userState);
     setSelectedFilterCity(userCity);
@@ -454,9 +498,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                         </div>
                       </div>
 
-                      {professional.description && (
-                        <p className="text-sm text-gray-600 mb-3">{professional.description}</p>
-                      )}
+                      {renderDescription(professional.id, professional.description)}
 
                       {professional.availability_status === 'available' ? (
                         <div className="space-y-2">
@@ -594,9 +636,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                 </div>
               </div>
 
-              {professional.description && (
-                <p className="text-sm text-gray-600 mb-3">{professional.description}</p>
-              )}
+              {renderDescription(professional.id, professional.description)}
 
               {professional.availability_status === 'available' ? (
                 <div className="space-y-2">
