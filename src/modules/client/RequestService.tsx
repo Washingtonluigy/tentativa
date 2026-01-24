@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, MessageSquare, Video, MapPin } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Video, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationPopup } from '../../components/NotificationPopup';
@@ -31,6 +31,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   const [actualProfessionalId, setActualProfessionalId] = useState<string>('');
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadProfessionalServices();
@@ -74,6 +75,53 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
     } finally {
       setLoadingServices(false);
     }
+  };
+
+  const toggleDescription = (serviceId: string) => {
+    setExpandedDescriptions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(serviceId)) {
+        newSet.delete(serviceId);
+      } else {
+        newSet.add(serviceId);
+      }
+      return newSet;
+    });
+  };
+
+  const renderServiceDescription = (serviceId: string, description: string) => {
+    if (!description) return null;
+
+    const isExpanded = expandedDescriptions.has(serviceId);
+    const shouldShowButton = description.length > 150;
+
+    return (
+      <div className="mt-1">
+        <p className={`text-sm text-gray-600 ${!isExpanded && shouldShowButton ? 'line-clamp-3' : ''}`}>
+          {description}
+        </p>
+        {shouldShowButton && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleDescription(serviceId);
+            }}
+            className="text-teal-600 text-xs font-medium mt-1 flex items-center gap-1 hover:text-teal-700 transition"
+          >
+            {isExpanded ? (
+              <>
+                Ver menos <ChevronUp className="w-3 h-3" />
+              </>
+            ) : (
+              <>
+                Ver mais <ChevronDown className="w-3 h-3" />
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    );
   };
 
   const getServiceOptions = () => {
@@ -306,9 +354,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
                   }`}
                 >
                   <h3 className="font-semibold text-gray-800">{service.name}</h3>
-                  {service.description && (
-                    <p className="text-sm text-gray-600 mt-1">{service.description}</p>
-                  )}
+                  {renderServiceDescription(service.id, service.description)}
                 </button>
               ))}
             </div>
