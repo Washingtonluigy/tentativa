@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, Folder, UserCog, DollarSign, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, Folder, UserCog, DollarSign, ClipboardList, Building2 } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { BottomNav } from '../../components/BottomNav';
 import { AdminDashboard } from './AdminDashboard';
@@ -8,6 +8,7 @@ import { CategoryManagement } from './CategoryManagement';
 import { ClientManagement } from './ClientManagement';
 import { PlansManagement } from './PlansManagement';
 import PendingApplications from './PendingApplications';
+import NetworkManagement from './NetworkManagement';
 
 export function AdminModule() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -15,6 +16,7 @@ export function AdminModule() {
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', value: 'dashboard' },
     { icon: ClipboardList, label: 'Cadastros', value: 'applications' },
+    { icon: Building2, label: 'Redes', value: 'networks' },
     { icon: Folder, label: 'Categorias', value: 'categories' },
     { icon: UserCog, label: 'Profissionais', value: 'professionals' },
     { icon: Users, label: 'Clientes', value: 'clients' },
@@ -27,6 +29,8 @@ export function AdminModule() {
         return <AdminDashboard />;
       case 'applications':
         return <PendingApplications />;
+      case 'networks':
+        return <NetworkManagement />;
       case 'professionals':
         return <ProfessionalManagement />;
       case 'categories':

@@ -1,25 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Calendar, Clock, Save, AlertCircle, MessageSquare, Video, Home } from 'lucide-react';
+import { Calendar, Clock, Save, AlertCircle, MessageSquare, Video, Home, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-interface DaySchedule {
-  day_of_week: number;
-  enabled: boolean;
+interface DateSchedule {
+  specific_date: string;
   start_time: string;
   end_time: string;
   availability_id?: string;
 }
-
-const DAYS_OF_WEEK = [
-  { value: 0, label: 'Domingo', short: 'Dom' },
-  { value: 1, label: 'Segunda-feira', short: 'Seg' },
-  { value: 2, label: 'Terça-feira', short: 'Ter' },
-  { value: 3, label: 'Quarta-feira', short: 'Qua' },
-  { value: 4, label: 'Quinta-feira', short: 'Qui' },
-  { value: 5, label: 'Sexta-feira', short: 'Sex' },
-  { value: 6, label: 'Sábado', short: 'Sáb' }
-];
 
 export function Schedule() {
   const { user } = useAuth();
@@ -29,18 +18,24 @@ export function Schedule() {
   const [acceptsUrgentMessage, setAcceptsUrgentMessage] = useState(false);
   const [acceptsUrgentVideo, setAcceptsUrgentVideo] = useState(false);
   const [acceptsUrgentHome, setAcceptsUrgentHome] = useState(false);
-  const [weekSchedule, setWeekSchedule] = useState<DaySchedule[]>(
-    DAYS_OF_WEEK.map(day => ({
-      day_of_week: day.value,
-      enabled: false,
-      start_time: '08:00',
-      end_time: '18:00'
-    }))
-  );
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [schedules, setSchedules] = useState<DateSchedule[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newSchedule, setNewSchedule] = useState({
+    specific_date: '',
+    start_time: '08:00',
+    end_time: '18:00'
+  });
 
   useEffect(() => {
     loadProfessionalData();
   }, [user]);
+
+  useEffect(() => {
+    if (professionalId) {
+      loadAvailability(professionalId);
+    }
+  }, [professionalId, currentMonth]);
 
   const loadProfessionalData = async () => {
     try {
@@ -64,7 +59,6 @@ export function Schedule() {
       setAcceptsUrgentMessage(profData.accepts_urgent_message || false);
       setAcceptsUrgentVideo(profData.accepts_urgent_video || false);
       setAcceptsUrgentHome(profData.accepts_urgent_home || false);
-      await loadAvailability(profData.id);
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
       setLoading(false);
@@ -73,34 +67,26 @@ export function Schedule() {
 
   const loadAvailability = async (profId: string) => {
     try {
+      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
       const { data, error } = await supabase
         .from('professional_availability')
         .select('*')
         .eq('professional_id', profId)
-        .eq('is_active', true);
+        .eq('is_available', true)
+        .gte('specific_date', startOfMonth.toISOString().split('T')[0])
+        .lte('specific_date', endOfMonth.toISOString().split('T')[0])
+        .order('specific_date');
 
       if (error) throw error;
 
-      const newSchedule = DAYS_OF_WEEK.map(day => {
-        const existing = data?.find(a => a.day_of_week === day.value);
-        if (existing) {
-          return {
-            day_of_week: day.value,
-            enabled: true,
-            start_time: existing.start_time.slice(0, 5),
-            end_time: existing.end_time.slice(0, 5),
-            availability_id: existing.id
-          };
-        }
-        return {
-          day_of_week: day.value,
-          enabled: false,
-          start_time: '08:00',
-          end_time: '18:00'
-        };
-      });
-
-      setWeekSchedule(newSchedule);
+      setSchedules(data?.map(d => ({
+        specific_date: d.specific_date,
+        start_time: d.start_time?.slice(0, 5) || '08:00',
+        end_time: d.end_time?.slice(0, 5) || '18:00',
+        availability_id: d.id
+      })) || []);
     } catch (err) {
       console.error('Erro ao carregar disponibilidade:', err);
     } finally {
@@ -108,28 +94,63 @@ export function Schedule() {
     }
   };
 
-  const handleToggleDay = (dayIndex: number) => {
-    setWeekSchedule(prev =>
-      prev.map((day, idx) =>
-        idx === dayIndex ? { ...day, enabled: !day.enabled } : day
-      )
-    );
+  const handleAddSchedule = async () => {
+    if (!professionalId || !newSchedule.specific_date) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('professional_availability')
+        .insert({
+          professional_id: professionalId,
+          specific_date: newSchedule.specific_date,
+          start_time: newSchedule.start_time,
+          end_time: newSchedule.end_time,
+          is_available: true,
+          is_active: true
+        });
+
+      if (error) throw error;
+
+      setShowAddForm(false);
+      setNewSchedule({
+        specific_date: '',
+        start_time: '08:00',
+        end_time: '18:00'
+      });
+      await loadAvailability(professionalId);
+      alert('Data adicionada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao adicionar data:', err);
+      alert('Erro ao adicionar data. Tente novamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleTimeChange = (dayIndex: number, field: 'start_time' | 'end_time', value: string) => {
-    setWeekSchedule(prev =>
-      prev.map((day, idx) =>
-        idx === dayIndex ? { ...day, [field]: value } : day
-      )
-    );
+  const handleRemoveSchedule = async (availabilityId: string) => {
+    if (!confirm('Deseja remover esta disponibilidade?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('professional_availability')
+        .delete()
+        .eq('id', availabilityId);
+
+      if (error) throw error;
+
+      await loadAvailability(professionalId);
+    } catch (err) {
+      console.error('Erro ao remover disponibilidade:', err);
+      alert('Erro ao remover disponibilidade.');
+    }
   };
 
-  const handleSaveSchedule = async () => {
+  const handleSaveUrgentSettings = async () => {
     if (!professionalId) return;
 
     setSaving(true);
     try {
-      // Salvar configurações de urgência por tipo
       await supabase
         .from('professionals')
         .update({
@@ -139,38 +160,53 @@ export function Schedule() {
         })
         .eq('id', professionalId);
 
-      // Deletar todos os horários existentes
-      await supabase
-        .from('professional_availability')
-        .delete()
-        .eq('professional_id', professionalId);
-
-      // Inserir apenas os dias habilitados
-      const enabledDays = weekSchedule.filter(day => day.enabled);
-      if (enabledDays.length > 0) {
-        const insertData = enabledDays.map(day => ({
-          professional_id: professionalId,
-          day_of_week: day.day_of_week,
-          start_time: day.start_time,
-          end_time: day.end_time,
-          is_active: true
-        }));
-
-        const { error } = await supabase
-          .from('professional_availability')
-          .insert(insertData);
-
-        if (error) throw error;
-      }
-
-      alert('Horários salvos com sucesso!');
-      await loadAvailability(professionalId);
+      alert('Configurações salvas com sucesso!');
     } catch (err) {
-      console.error('Erro ao salvar horários:', err);
-      alert('Erro ao salvar horários. Tente novamente.');
+      console.error('Erro ao salvar configurações:', err);
+      alert('Erro ao salvar configurações.');
     } finally {
       setSaving(false);
     }
+  };
+
+  const getDaysInMonth = () => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days: (number | null)[] = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    return days;
+  };
+
+  const hasScheduleForDate = (day: number): boolean => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return schedules.some(s => s.specific_date === dateStr);
+  };
+
+  const getScheduleForDate = (day: number): DateSchedule | undefined => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return schedules.find(s => s.specific_date === dateStr);
+  };
+
+  const previousMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
   };
 
   if (loading) {
@@ -195,15 +231,17 @@ export function Schedule() {
     );
   }
 
+  const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
   return (
     <div className="p-4 pb-20 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h2 className="text-3xl font-bold text-gray-800">Minha Agenda</h2>
-          <p className="text-gray-600 text-sm mt-1">Configure os dias e horários que você trabalha</p>
+          <p className="text-gray-600 text-sm mt-1">Configure as datas e horários que você trabalha</p>
         </div>
 
-        {/* Atendimento Urgente por Tipo */}
         <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl shadow-lg p-6 mb-6 border-2 border-red-200">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-red-100 p-3 rounded-full">
@@ -274,116 +312,181 @@ export function Schedule() {
             </div>
           </div>
 
-          <div className="mt-4 bg-white rounded-lg p-3">
-            {(acceptsUrgentMessage || acceptsUrgentVideo || acceptsUrgentHome) ? (
-              <p className="text-sm text-green-700 font-medium">
-                ✅ Você aparecerá em buscas urgentes de: {
-                  [
-                    acceptsUrgentMessage && 'Mensagem',
-                    acceptsUrgentVideo && 'Vídeo',
-                    acceptsUrgentHome && 'Domiciliar'
-                  ].filter(Boolean).join(', ')
-                }
-              </p>
-            ) : (
-              <p className="text-sm text-gray-600">
-                Você não aparecerá nas buscas de urgência
-              </p>
-            )}
-          </div>
+          <button
+            onClick={handleSaveUrgentSettings}
+            disabled={saving}
+            className="w-full mt-4 bg-red-600 text-white py-3 rounded-lg font-bold hover:bg-red-700 transition disabled:opacity-50"
+          >
+            {saving ? 'Salvando...' : 'Salvar Configurações de Urgência'}
+          </button>
         </div>
 
-        {/* Configuração de Dias e Horários */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Calendar className="w-6 h-6 text-teal-600" />
-            <div>
-              <h3 className="text-xl font-bold text-gray-800">Dias e Horários de Trabalho</h3>
-              <p className="text-sm text-gray-600">Marque os dias que você trabalha e defina os horários</p>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-6 h-6 text-teal-600" />
+              <div>
+                <h3 className="text-xl font-bold text-gray-800">Calendário de Disponibilidade</h3>
+                <p className="text-sm text-gray-600">Adicione as datas em que você estará disponível</p>
+              </div>
             </div>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition"
+            >
+              <Plus className="w-5 h-5" />
+              Adicionar Data
+            </button>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-blue-800">
-              <p className="font-medium mb-1">Como funciona:</p>
-              <ul className="list-disc list-inside space-y-1 text-blue-700">
-                <li>Marque os dias da semana que você atende</li>
-                <li>Defina o horário de início e fim para cada dia</li>
-                <li>Você só aparecerá disponível nos dias/horários configurados</li>
-                <li>Clientes não poderão solicitar atendimento fora desses períodos</li>
-              </ul>
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={previousMonth} className="p-2 hover:bg-gray-100 rounded-lg transition">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h4 className="text-lg font-bold text-gray-800">
+              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            </h4>
+            <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition">
+              <ChevronRight className="w-6 h-6" />
+            </button>
           </div>
 
-          <div className="space-y-4">
-            {weekSchedule.map((day, index) => (
-              <div
-                key={day.day_of_week}
-                className={`border-2 rounded-xl p-4 transition-all ${
-                  day.enabled
-                    ? 'border-teal-300 bg-teal-50'
-                    : 'border-gray-200 bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-3 cursor-pointer flex-1">
-                    <input
-                      type="checkbox"
-                      checked={day.enabled}
-                      onChange={() => handleToggleDay(index)}
-                      className="w-6 h-6 text-teal-600 border-gray-300 rounded focus:ring-2 focus:ring-teal-500"
-                    />
-                    <span className={`font-semibold text-lg min-w-[140px] ${
-                      day.enabled ? 'text-teal-900' : 'text-gray-500'
-                    }`}>
-                      {DAYS_OF_WEEK[index].label}
-                    </span>
-                  </label>
-
-                  {day.enabled && (
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-500" />
-                        <input
-                          type="time"
-                          value={day.start_time}
-                          onChange={(e) => handleTimeChange(index, 'start_time', e.target.value)}
-                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-                        />
-                      </div>
-                      <span className="text-gray-500 font-medium">até</span>
-                      <input
-                        type="time"
-                        value={day.end_time}
-                        onChange={(e) => handleTimeChange(index, 'end_time', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-                      />
-                    </div>
-                  )}
-                </div>
+          <div className="grid grid-cols-7 gap-2 mb-2">
+            {dayNames.map(day => (
+              <div key={day} className="text-center font-semibold text-gray-600 text-sm py-2">
+                {day}
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Botão Salvar */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <button
-            onClick={handleSaveSchedule}
-            disabled={saving}
-            className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-teal-700 transition disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg"
-          >
-            <Save className="w-6 h-6" />
-            {saving ? 'Salvando...' : 'Salvar Horários'}
-          </button>
+          <div className="grid grid-cols-7 gap-2">
+            {getDaysInMonth().map((day, index) => {
+              if (day === null) {
+                return <div key={`empty-${index}`} className="aspect-square"></div>;
+              }
 
-          {weekSchedule.filter(d => d.enabled).length === 0 && (
-            <p className="text-center text-amber-600 text-sm mt-4 font-medium">
-              ⚠️ Atenção: Você não aparecerá nas buscas até configurar pelo menos um dia de trabalho
-            </p>
+              const hasSchedule = hasScheduleForDate(day);
+              const schedule = getScheduleForDate(day);
+              const isToday = new Date().toDateString() === new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day).toDateString();
+
+              return (
+                <div
+                  key={day}
+                  className={`aspect-square border-2 rounded-lg p-2 transition-all ${
+                    hasSchedule
+                      ? 'border-teal-500 bg-teal-50'
+                      : 'border-gray-200 bg-white'
+                  } ${isToday ? 'ring-2 ring-blue-400' : ''}`}
+                >
+                  <div className="text-center">
+                    <div className={`font-semibold ${hasSchedule ? 'text-teal-900' : 'text-gray-700'}`}>
+                      {day}
+                    </div>
+                    {hasSchedule && schedule && (
+                      <div className="text-xs text-teal-700 mt-1">
+                        {schedule.start_time} - {schedule.end_time}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {schedules.length > 0 && (
+            <div className="mt-6">
+              <h4 className="font-semibold text-gray-800 mb-3">Disponibilidades Cadastradas:</h4>
+              <div className="space-y-2">
+                {schedules.map(schedule => (
+                  <div
+                    key={schedule.availability_id}
+                    className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-lg p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Calendar className="w-5 h-5 text-teal-600" />
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {new Date(schedule.specific_date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {schedule.start_time} - {schedule.end_time}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => schedule.availability_id && handleRemoveSchedule(schedule.availability_id)}
+                      className="p-2 hover:bg-red-100 rounded-lg transition text-red-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
+
+        {showAddForm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Adicionar Disponibilidade</h3>
+                <button onClick={() => setShowAddForm(false)}>
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                  <input
+                    type="date"
+                    value={newSchedule.specific_date}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, specific_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Horário de Início</label>
+                  <input
+                    type="time"
+                    value={newSchedule.start_time}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, start_time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Horário de Término</label>
+                  <input
+                    type="time"
+                    value={newSchedule.end_time}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, end_time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={handleAddSchedule}
+                  disabled={saving || !newSchedule.specific_date}
+                  className="flex-1 bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+                >
+                  {saving ? 'Salvando...' : 'Adicionar'}
+                </button>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

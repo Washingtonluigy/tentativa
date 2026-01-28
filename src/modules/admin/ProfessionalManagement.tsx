@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Upload, X, User, Eye, EyeOff } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Upload, X, User, Eye, EyeOff, Network } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { NotificationPopup } from '../../components/NotificationPopup';
+import ProfessionalNetworkAssignment from './ProfessionalNetworkAssignment';
 
 interface Category {
   id: string;
@@ -48,6 +49,7 @@ export function ProfessionalManagement() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [showNotification, setShowNotification] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [networkAssignmentProfessional, setNetworkAssignmentProfessional] = useState<Professional | null>(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -874,6 +876,13 @@ export function ProfessionalManagement() {
               </div>
               <div className="flex gap-2">
                 <button
+                  onClick={() => setNetworkAssignmentProfessional(professional)}
+                  className="p-2 hover:bg-teal-50 rounded-lg transition"
+                  title="Vincular a Redes"
+                >
+                  <Network className="w-4 h-4 text-teal-600" />
+                </button>
+                <button
                   onClick={() => handleEdit(professional)}
                   className="p-2 hover:bg-gray-100 rounded-lg transition"
                 >
@@ -890,6 +899,15 @@ export function ProfessionalManagement() {
           </div>
         ))}
       </div>
+
+      {networkAssignmentProfessional && (
+        <ProfessionalNetworkAssignment
+          professionalId={networkAssignmentProfessional.user_id}
+          professionalName={networkAssignmentProfessional.full_name}
+          onClose={() => setNetworkAssignmentProfessional(null)}
+          onUpdate={loadProfessionals}
+        />
+      )}
 
       <NotificationPopup
         isOpen={showNotification}

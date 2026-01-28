@@ -11,6 +11,7 @@ import { PlansView } from './PlansView';
 import { ClientProfile } from './ClientProfile';
 import { MyCity } from './MyCity';
 import Messages from './Messages';
+import SACPopup from '../../components/SACPopup';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 export function ClientModule() {
@@ -99,6 +100,8 @@ export function ClientModule() {
       {showProfile && (
         <ClientProfile onClose={() => setShowProfile(false)} />
       )}
+
+      <SACPopup />
     </div>
   );
 }
