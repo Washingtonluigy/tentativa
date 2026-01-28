@@ -56,13 +56,10 @@ export default function SACPopup() {
 
             <button
               onClick={() => handleSACOption('doubt')}
-              className="w-full text-left p-3 bg-gradient-to-r from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200 rounded-lg transition-all border border-teal-200"
+              className="w-full text-center p-3 bg-gradient-to-r from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200 rounded-lg transition-all border border-teal-200"
             >
-              <p className="font-semibold text-teal-900 text-sm">
-                Estou com dúvidas
-              </p>
-              <p className="text-xs text-teal-700 mt-1">
-                Tire suas dúvidas conosco
+              <p className="font-semibold text-teal-900 text-base">
+                DÚVIDAS?
               </p>
             </button>
           </div>
