@@ -30,7 +30,7 @@ export default function SACPopup() {
       </button>
 
       {showMenu && (
-        <div className="fixed bottom-40 right-6 bg-white rounded-lg shadow-xl border-2 border-blue-100 p-4 z-50 w-72">
+        <div className="fixed bottom-40 right-6 bg-white rounded-lg shadow-xl border-2 border-blue-100 p-4 z-50 w-72" translate="no">
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-gray-800">Como podemos ajudar?</h3>
             <button
