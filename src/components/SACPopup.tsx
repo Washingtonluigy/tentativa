@@ -5,7 +5,7 @@ export default function SACPopup() {
   const [showMenu, setShowMenu] = useState(false);
 
   const handleSACOption = (option: 'professional' | 'doubt') => {
-    const phoneNumber = '5511999999999';
+    const phoneNumber = '5565990720070';
     let message = '';
 
     if (option === 'professional') {
@@ -23,10 +23,10 @@ export default function SACPopup() {
     <>
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="fixed bottom-24 right-6 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-all z-40 hover:scale-110"
+        className="fixed bottom-24 right-6 bg-blue-600 bg-opacity-30 text-white p-1.5 rounded-full shadow-sm hover:bg-opacity-50 transition-all z-40 hover:scale-105"
         title="SAC - Atendimento ao Cliente"
       >
-        <Headphones className="w-6 h-6" />
+        <Headphones className="w-3.5 h-3.5" />
       </button>
 
       {showMenu && (
