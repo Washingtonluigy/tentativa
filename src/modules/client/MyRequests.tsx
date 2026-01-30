@@ -21,6 +21,7 @@ interface Request {
   is_home_service: boolean;
   payment_link: string | null;
   payment_completed: boolean;
+  payment_error?: string | null;
   video_call_room_id?: string | null;
   video_call_status?: string | null;
 }
@@ -155,6 +156,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
           is_home_service: r.is_home_service || false,
           payment_link: r.payment_link,
           payment_completed: r.payment_completed || false,
+          payment_error: r.payment_error,
         };
       });
 
@@ -406,6 +408,11 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
                     <CreditCard size={16} className="sm:w-[18px] sm:h-[18px]" />
                     Realizar Pagamento
                   </button>
+                ) : request.payment_error ? (
+                  <div className="w-full mt-2 sm:mt-3 bg-red-50 border-2 border-red-200 text-red-800 py-2 px-3 sm:px-4 rounded-lg text-center text-xs sm:text-sm">
+                    <AlertCircle size={16} className="inline sm:w-[18px] sm:h-[18px] mr-1" />
+                    {request.payment_error}
+                  </div>
                 ) : (
                   <div className="w-full mt-2 sm:mt-3 bg-yellow-50 border-2 border-yellow-200 text-yellow-800 py-2 px-3 sm:px-4 rounded-lg text-center text-xs sm:text-sm">
                     <Clock size={16} className="inline sm:w-[18px] sm:h-[18px] mr-1" />

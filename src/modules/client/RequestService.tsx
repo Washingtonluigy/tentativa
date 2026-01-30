@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, MessageSquare, Video, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Video, MapPin, ChevronDown, ChevronUp, Clock, AlertCircle, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { NotificationPopup } from '../../components/NotificationPopup';
@@ -20,6 +20,13 @@ interface ProfessionalService {
   price_local: number | null;
 }
 
+interface AvailableSlot {
+  day: string;
+  dayOfWeek: number;
+  date: string;
+  slots: { start_time: string; end_time: string }[];
+}
+
 export function RequestService({ professionalId, professionalName, onBack, onSuccess }: RequestServiceProps) {
   const { user } = useAuth();
   const [serviceType, setServiceType] = useState<'message' | 'video_call' | 'in_person' | null>(null);
@@ -32,10 +39,19 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [isAvailable, setIsAvailable] = useState<boolean>(true);
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [showAvailabilityInfo, setShowAvailabilityInfo] = useState(false);
 
   useEffect(() => {
     loadProfessionalServices();
   }, [professionalId]);
+
+  useEffect(() => {
+    if (actualProfessionalId) {
+      checkProfessionalAvailability();
+    }
+  }, [actualProfessionalId]);
 
   const loadProfessionalServices = async () => {
     setLoadingServices(true);
@@ -74,6 +90,116 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
       console.error('Error:', error);
     } finally {
       setLoadingServices(false);
+    }
+  };
+
+  const checkProfessionalAvailability = async () => {
+    try {
+      const today = new Date();
+      const todayDayOfWeek = today.getDay();
+      const currentTime = today.toTimeString().slice(0, 5);
+
+      // Verificar se profissional está em atendimento
+      const { data: appointments } = await supabase
+        .from('scheduled_appointments')
+        .select('*')
+        .eq('professional_id', actualProfessionalId)
+        .eq('status', 'in_progress')
+        .maybeSingle();
+
+      if (appointments) {
+        setIsAvailable(false);
+        await loadNextAvailableSlots();
+        return;
+      }
+
+      // Verificar horários configurados do profissional
+      const { data: availabilityData } = await supabase
+        .from('professional_availability')
+        .select('*')
+        .eq('professional_id', actualProfessionalId)
+        .eq('is_active', true)
+        .eq('day_of_week', todayDayOfWeek);
+
+      // Se não tem horário configurado para hoje, está indisponível
+      if (!availabilityData || availabilityData.length === 0) {
+        setIsAvailable(false);
+        await loadNextAvailableSlots();
+        return;
+      }
+
+      // Verificar se está dentro de algum dos horários de hoje
+      const isWithinSchedule = availabilityData.some((slot: any) => {
+        const startTime = slot.start_time.slice(0, 5);
+        const endTime = slot.end_time.slice(0, 5);
+        return currentTime >= startTime && currentTime <= endTime;
+      });
+
+      if (isWithinSchedule) {
+        setIsAvailable(true);
+      } else {
+        setIsAvailable(false);
+        await loadNextAvailableSlots();
+      }
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      setIsAvailable(true);
+    }
+  };
+
+  const loadNextAvailableSlots = async () => {
+    try {
+      const { data: availabilityData } = await supabase
+        .from('professional_availability')
+        .select('*')
+        .eq('professional_id', actualProfessionalId)
+        .eq('is_active', true)
+        .order('day_of_week');
+
+      if (!availabilityData || availabilityData.length === 0) {
+        setAvailableSlots([]);
+        return;
+      }
+
+      const today = new Date();
+      const todayDayOfWeek = today.getDay();
+      const slots: AvailableSlot[] = [];
+      const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+      // Agrupar por dia da semana
+      const slotsByDay = new Map<number, { start_time: string; end_time: string }[]>();
+      availabilityData.forEach((slot: any) => {
+        if (!slotsByDay.has(slot.day_of_week)) {
+          slotsByDay.set(slot.day_of_week, []);
+        }
+        slotsByDay.get(slot.day_of_week)!.push({
+          start_time: slot.start_time,
+          end_time: slot.end_time
+        });
+      });
+
+      // Buscar próximos 7 dias com disponibilidade
+      for (let i = 1; i <= 14; i++) {
+        const futureDate = new Date(today);
+        futureDate.setDate(today.getDate() + i);
+        const futureDayOfWeek = futureDate.getDay();
+
+        if (slotsByDay.has(futureDayOfWeek)) {
+          slots.push({
+            day: daysOfWeek[futureDayOfWeek],
+            dayOfWeek: futureDayOfWeek,
+            date: futureDate.toLocaleDateString('pt-BR'),
+            slots: slotsByDay.get(futureDayOfWeek)!
+          });
+
+          if (slots.length >= 5) break;
+        }
+      }
+
+      setAvailableSlots(slots);
+    } catch (error) {
+      console.error('Error loading next available slots:', error);
+      setAvailableSlots([]);
     }
   };
 
@@ -331,6 +457,59 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
           <p className="text-sm text-gray-600">{professionalName}</p>
         </div>
       </div>
+
+      {!isAvailable && availableSlots.length > 0 && (
+        <div className="mb-6 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+          <div className="flex items-start gap-3 mb-3">
+            <AlertCircle className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-900 mb-1">Profissional Indisponível no Momento</h3>
+              <p className="text-sm text-yellow-800 mb-3">
+                Este profissional não está disponível agora, mas você pode solicitar agendamento para os seguintes horários:
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAvailabilityInfo(!showAvailabilityInfo)}
+                className="text-sm font-medium text-yellow-900 hover:text-yellow-700 flex items-center gap-1"
+              >
+                <Calendar className="w-4 h-4" />
+                {showAvailabilityInfo ? 'Ocultar horários' : 'Ver horários disponíveis'}
+              </button>
+            </div>
+          </div>
+
+          {showAvailabilityInfo && (
+            <div className="mt-3 space-y-2 border-t border-yellow-200 pt-3">
+              {availableSlots.map((slot, index) => (
+                <div key={index} className="bg-white rounded-lg p-3 border border-yellow-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-teal-600" />
+                      <span className="font-semibold text-gray-900">{slot.day}</span>
+                    </div>
+                    <span className="text-sm text-gray-600">{slot.date}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {slot.slots.map((timeSlot, idx) => (
+                      <div key={idx} className="flex items-center gap-1 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+                        <Clock className="w-3 h-3 text-teal-600" />
+                        <span className="text-sm text-teal-900 font-medium">
+                          {timeSlot.start_time.slice(0, 5)} - {timeSlot.end_time.slice(0, 5)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Dica:</strong> Você ainda pode solicitar o atendimento. O profissional receberá sua solicitação e poderá aceitar para um dos horários disponíveis.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {services.length > 1 && (

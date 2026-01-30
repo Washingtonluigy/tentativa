@@ -162,62 +162,90 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
         .update({ status: 'accepted' })
         .eq('id', requestId);
 
-      if (professional.mercadopago_connected) {
-        let amount = 1.00;
+      let amount = 1.00;
+      let maxInstallments = 1;
 
-        let maxInstallments = 1;
+      if (professionalServiceId) {
+        const { data: serviceData } = await supabase
+          .from('professional_services')
+          .select('price_message, price_video, price_local, max_installments')
+          .eq('id', professionalServiceId)
+          .maybeSingle();
 
-        if (professionalServiceId) {
-          const { data: serviceData } = await supabase
-            .from('professional_services')
-            .select('price_message, price_video, price_local, max_installments')
-            .eq('id', professionalServiceId)
-            .maybeSingle();
-
-          if (serviceData) {
-            if (requestData.service_type === 'message' && serviceData.price_message) {
-              amount = parseFloat(serviceData.price_message);
-            } else if (requestData.service_type === 'video' && serviceData.price_video) {
-              amount = parseFloat(serviceData.price_video);
-            } else if ((requestData.service_type === 'home_service' || requestData.service_type === 'local') && serviceData.price_local) {
-              amount = parseFloat(serviceData.price_local);
-            }
-            maxInstallments = serviceData.max_installments || 1;
+        if (serviceData) {
+          if (requestData.service_type === 'message' && serviceData.price_message) {
+            amount = parseFloat(serviceData.price_message);
+          } else if (requestData.service_type === 'video' && serviceData.price_video) {
+            amount = parseFloat(serviceData.price_video);
+          } else if ((requestData.service_type === 'home_service' || requestData.service_type === 'local' || requestData.service_type === 'in_person') && serviceData.price_local) {
+            amount = parseFloat(serviceData.price_local);
           }
+          maxInstallments = serviceData.max_installments || 1;
         }
+      }
 
-        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-create-payment`;
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-create-payment`;
 
-        try {
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              serviceRequestId: requestId,
-              amount: amount,
-              commissionPercentage: 10,
-              maxInstallments: maxInstallments
-            }),
-          });
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            serviceRequestId: requestId,
+            amount: amount,
+            commissionPercentage: 10,
+            maxInstallments: maxInstallments
+          }),
+        });
 
-          const paymentData = await response.json();
+        const paymentData = await response.json();
+        console.log('Payment creation response:', paymentData);
 
-          if (paymentData.success && paymentData.initPoint) {
-            await supabase
-              .from('service_requests')
-              .update({ payment_link: paymentData.initPoint })
-              .eq('id', requestId);
-          } else if (paymentData.needsConnection) {
-            alert('Você precisa conectar sua conta Mercado Pago primeiro. Acesse a aba "Pagamentos".');
-          } else if (paymentData.needsRefresh) {
-            alert('Seu token expirou. Renove-o na aba "Pagamentos".');
-          }
-        } catch (paymentError) {
-          console.error('Error creating payment:', paymentError);
+        if (paymentData.success && paymentData.initPoint) {
+          await supabase
+            .from('service_requests')
+            .update({ payment_link: paymentData.initPoint })
+            .eq('id', requestId);
+        } else if (paymentData.needsConnection) {
+          console.error('Mercado Pago not connected');
+          await supabase
+            .from('service_requests')
+            .update({
+              payment_link: null,
+              payment_error: 'Mercado Pago não conectado. Entre em contato com o profissional.'
+            })
+            .eq('id', requestId);
+        } else if (paymentData.needsRefresh) {
+          console.error('Mercado Pago token expired');
+          await supabase
+            .from('service_requests')
+            .update({
+              payment_link: null,
+              payment_error: 'Token do Mercado Pago expirado. Entre em contato com o profissional.'
+            })
+            .eq('id', requestId);
+        } else if (paymentData.error) {
+          console.error('Payment creation error:', paymentData.error);
+          await supabase
+            .from('service_requests')
+            .update({
+              payment_link: null,
+              payment_error: 'Erro ao gerar link de pagamento. Entre em contato com o profissional.'
+            })
+            .eq('id', requestId);
         }
+      } catch (paymentError) {
+        console.error('Error creating payment:', paymentError);
+        await supabase
+          .from('service_requests')
+          .update({
+            payment_link: null,
+            payment_error: 'Erro ao gerar link de pagamento. Entre em contato com o profissional.'
+          })
+          .eq('id', requestId);
       }
 
       const { data: conversationData } = await supabase
