@@ -243,7 +243,13 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
       return;
     }
 
-    window.open(request.payment_link, '_blank');
+    const link = document.createElement('a');
+    link.href = request.payment_link;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handlePaymentCompleted = async (requestId: string) => {

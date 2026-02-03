@@ -506,7 +506,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   }
 
   return (
-    <div className="p-4 pb-20">
+    <div className="p-4 pb-40">
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={onBack}
@@ -576,7 +576,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
       <form onSubmit={handleSubmit} className="space-y-6">
         {services.length > 1 && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
+            <label className="block text-sm font-medium text-gray-700 mb-3" translate="no">
               Escolha o serviço
             </label>
             <div className="space-y-2">
@@ -603,7 +603,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
+          <label className="block text-sm font-medium text-gray-700 mb-3" translate="no">
             Escolha o tipo de atendimento
           </label>
           {serviceOptions.length === 0 ? (
@@ -630,9 +630,9 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
                       <Icon className={`w-6 h-6 ${isSelected ? 'text-white' : 'text-gray-600'}`} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-800">{option.title}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{option.description}</p>
-                      <p className="text-lg font-bold text-teal-600 mt-2">{option.price}</p>
+                      <h3 className="font-semibold text-gray-800" translate="no">{option.title}</h3>
+                      <p className="text-sm text-gray-600 mt-1" translate="no">{option.description}</p>
+                      <p className="text-lg font-bold text-teal-600 mt-2" translate="no">{option.price}</p>
                     </div>
                   </div>
                 </button>
@@ -643,7 +643,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2" translate="no">
             Observações (opcional)
           </label>
           <textarea
