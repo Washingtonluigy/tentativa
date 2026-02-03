@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Calendar, Clock, Save, AlertCircle, MessageSquare, Video, Home, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
+import { Calendar, Clock, Save, AlertCircle, MessageSquare, Video, Home, ChevronLeft, ChevronRight, Plus, X, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface DateSchedule {
@@ -26,6 +26,8 @@ export function Schedule() {
     start_time: '08:00',
     end_time: '18:00'
   });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     loadProfessionalData();
@@ -119,7 +121,9 @@ export function Schedule() {
         end_time: '18:00'
       });
       await loadAvailability(professionalId);
-      alert('Data adicionada com sucesso!');
+      setSuccessMessage('Data adicionada com sucesso!');
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 3000);
     } catch (err) {
       console.error('Erro ao adicionar data:', err);
       alert('Erro ao adicionar data. Tente novamente.');
@@ -160,7 +164,9 @@ export function Schedule() {
         })
         .eq('id', professionalId);
 
-      alert('Configurações salvas com sucesso!');
+      setSuccessMessage('Configurações salvas com sucesso!');
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 3000);
     } catch (err) {
       console.error('Erro ao salvar configurações:', err);
       alert('Erro ao salvar configurações.');
@@ -428,43 +434,43 @@ export function Schedule() {
 
         {showAddForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full animate-fadeIn">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Adicionar Disponibilidade</h3>
-                <button onClick={() => setShowAddForm(false)}>
-                  <X className="w-6 h-6" />
+                <h3 className="text-xl font-bold text-gray-800">Adicionar Disponibilidade</h3>
+                <button onClick={() => setShowAddForm(false)} className="hover:bg-gray-100 rounded-full p-1 transition">
+                  <X className="w-6 h-6 text-gray-600" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Data</label>
                   <input
                     type="date"
                     value={newSchedule.specific_date}
                     onChange={(e) => setNewSchedule({ ...newSchedule, specific_date: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Horário de Início</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Horário de Início</label>
                   <input
                     type="time"
                     value={newSchedule.start_time}
                     onChange={(e) => setNewSchedule({ ...newSchedule, start_time: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Horário de Término</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Horário de Término</label>
                   <input
                     type="time"
                     value={newSchedule.end_time}
                     onChange={(e) => setNewSchedule({ ...newSchedule, end_time: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition"
                   />
                 </div>
               </div>
@@ -473,17 +479,41 @@ export function Schedule() {
                 <button
                   onClick={handleAddSchedule}
                   disabled={saving || !newSchedule.specific_date}
-                  className="flex-1 bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-teal-600 to-teal-700 text-white py-3 rounded-xl font-semibold hover:from-teal-700 hover:to-teal-800 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? 'Salvando...' : 'Adicionar'}
                 </button>
                 <button
                   onClick={() => setShowAddForm(false)}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition"
+                  className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-all"
                 >
                   Cancelar
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full transform animate-bounce">
+              <div className="text-center">
+                <div className="bg-gradient-to-br from-green-400 to-teal-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl animate-pulse">
+                  <CheckCircle className="w-12 h-12 text-white" strokeWidth={3} />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  Sucesso!
+                </h3>
+                <p className="text-gray-600 text-lg">
+                  {successMessage}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full mt-6 bg-gradient-to-r from-teal-600 to-teal-700 text-white py-3 rounded-xl font-bold hover:from-teal-700 hover:to-teal-800 transition-all shadow-md hover:shadow-lg"
+              >
+                OK
+              </button>
             </div>
           </div>
         )}
