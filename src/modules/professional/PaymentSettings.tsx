@@ -10,6 +10,9 @@ export function PaymentSettings() {
   const [connecting, setConnecting] = useState(false);
   const [professionalId, setProfessionalId] = useState<string | null>(null);
   const [tokenInfo, setTokenInfo] = useState<any>(null);
+  const [checkIntervalId, setCheckIntervalId] = useState<number | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
 
   useEffect(() => {
     checkConnection();
@@ -47,6 +50,19 @@ export function PaymentSettings() {
     }
   };
 
+  const cancelConnection = () => {
+    if (checkIntervalId) {
+      clearInterval(checkIntervalId);
+      setCheckIntervalId(null);
+    }
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      setTimeoutId(null);
+    }
+    setConnecting(false);
+    setConnectionError(null);
+  };
+
   const handleConnect = async () => {
     if (!professionalId) {
       alert('Erro ao obter dados do profissional');
@@ -54,6 +70,8 @@ export function PaymentSettings() {
     }
 
     setConnecting(true);
+    setConnectionError(null);
+
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-oauth-init`;
       const response = await fetch(`${apiUrl}?professional_id=${professionalId}`, {
@@ -64,31 +82,59 @@ export function PaymentSettings() {
 
       const data = await response.json();
 
+      if (data.error) {
+        setConnectionError('Erro ao iniciar conexão: ' + data.error);
+        setConnecting(false);
+        return;
+      }
+
       if (data.authorizationUrl) {
-        window.open(data.authorizationUrl, '_blank', 'width=600,height=700');
+        const popup = window.open(data.authorizationUrl, 'MercadoPagoAuth', 'width=600,height=700,scrollbars=yes');
 
-        const checkInterval = setInterval(async () => {
-          await checkConnection();
-          const { data: professional } = await supabase
-            .from('professionals')
-            .select('mercadopago_connected')
-            .eq('id', professionalId)
-            .maybeSingle();
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          setConnectionError('Popup bloqueado pelo navegador. Por favor, permita popups para este site.');
+          setConnecting(false);
+          return;
+        }
 
-          if (professional?.mercadopago_connected) {
-            clearInterval(checkInterval);
-            setConnecting(false);
+        const intervalId = window.setInterval(async () => {
+          try {
+            const { data: professional } = await supabase
+              .from('professionals')
+              .select('mercadopago_connected')
+              .eq('id', professionalId)
+              .maybeSingle();
+
+            if (professional?.mercadopago_connected) {
+              clearInterval(intervalId);
+              if (timeoutId) clearTimeout(timeoutId);
+              setConnecting(false);
+              await checkConnection();
+              if (popup && !popup.closed) {
+                popup.close();
+              }
+            }
+          } catch (error) {
+            console.error('Error checking connection:', error);
           }
         }, 2000);
 
-        setTimeout(() => {
-          clearInterval(checkInterval);
+        setCheckIntervalId(intervalId);
+
+        const timeout = window.setTimeout(() => {
+          clearInterval(intervalId);
           setConnecting(false);
+          setConnectionError('Tempo esgotado. Por favor, tente novamente.');
+          if (popup && !popup.closed) {
+            popup.close();
+          }
         }, 120000);
+
+        setTimeoutId(timeout);
       }
     } catch (error) {
       console.error('Error connecting to Mercado Pago:', error);
-      alert('Erro ao conectar com Mercado Pago');
+      setConnectionError('Erro ao conectar com Mercado Pago: ' + (error as Error).message);
       setConnecting(false);
     }
   };
@@ -221,25 +267,47 @@ export function PaymentSettings() {
           </div>
         )}
 
+        {connectionError && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-red-900 mb-1">Erro na Conexão</p>
+                <p className="text-xs text-red-700">{connectionError}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="space-y-3">
           {!isConnected ? (
-            <button
-              onClick={handleConnect}
-              disabled={connecting}
-              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {connecting ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Aguardando autorização...
-                </>
-              ) : (
-                <>
-                  <ExternalLink className="w-5 h-5" />
-                  Conectar com Mercado Pago
-                </>
+            <>
+              <button
+                onClick={handleConnect}
+                disabled={connecting}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {connecting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Aguardando autorização...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="w-5 h-5" />
+                    Conectar com Mercado Pago
+                  </>
+                )}
+              </button>
+              {connecting && (
+                <button
+                  onClick={cancelConnection}
+                  className="w-full bg-red-50 text-red-600 px-6 py-3 rounded-lg font-medium hover:bg-red-100 transition-all flex items-center justify-center gap-2"
+                >
+                  Cancelar
+                </button>
               )}
-            </button>
+            </>
           ) : (
             <>
               <button
@@ -261,7 +329,28 @@ export function PaymentSettings() {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4">
+        <h4 className="font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          Dicas Importantes
+        </h4>
+        <ul className="text-sm text-yellow-800 space-y-2">
+          <li className="flex items-start gap-2">
+            <span className="text-yellow-600 mt-1">•</span>
+            <span><strong>Permita popups:</strong> O navegador pode bloquear a janela do Mercado Pago. Se isso acontecer, clique no ícone de bloqueio na barra de endereços e permita popups.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-yellow-600 mt-1">•</span>
+            <span><strong>Complete a autorização:</strong> Não feche a janela até ver a mensagem de sucesso.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-yellow-600 mt-1">•</span>
+            <span><strong>Tempo limite:</strong> Você tem 2 minutos para completar a autorização.</span>
+          </li>
+        </ul>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
         <h4 className="font-semibold text-blue-900 mb-2">Como funciona?</h4>
         <ul className="text-sm text-blue-800 space-y-2">
           <li className="flex items-start gap-2">
