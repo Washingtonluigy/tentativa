@@ -204,8 +204,22 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
             }),
           });
 
+          console.log('Response status:', response.status);
+          console.log('Response ok:', response.ok);
+
           const paymentData = await response.json();
           console.log('Payment creation response:', paymentData);
+          console.log('Payment creation response STRINGIFIED:', JSON.stringify(paymentData, null, 2));
+
+          if (!response.ok) {
+            console.error('❌ ERRO NA API:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: paymentData.error,
+              needsProfileUpdate: paymentData.needsProfileUpdate,
+              fullResponse: paymentData
+            });
+          }
 
           if (paymentData.success && paymentData.initPoint) {
             await supabase

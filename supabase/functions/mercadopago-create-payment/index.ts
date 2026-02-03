@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: clientProfile, error: clientProfileError } = await supabase
       .from("profiles")
-      .select("full_name, email, cpf")
+      .select("full_name, cpf")
       .eq("user_id", serviceRequest.client_id)
       .maybeSingle();
 
