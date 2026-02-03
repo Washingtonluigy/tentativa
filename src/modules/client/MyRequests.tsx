@@ -163,7 +163,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
       setRequests(formatted);
 
       const pendingPayment = formatted.find(
-        (r: Request) => r.status === 'accepted' && r.payment_link && !r.payment_completed
+        (r: Request) => (r.status === 'pending' || r.status === 'accepted') && r.payment_link && !r.payment_completed
       );
 
       if (pendingPayment && !showPaymentModal) {
@@ -398,7 +398,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               </span>
             </div>
 
-            {request.status === 'accepted' && !request.payment_completed && (
+            {(request.status === 'pending' || request.status === 'accepted') && !request.payment_completed && (
               <>
                 {request.payment_link ? (
                   <button
@@ -416,7 +416,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
                 ) : (
                   <div className="w-full mt-2 sm:mt-3 bg-yellow-50 border-2 border-yellow-200 text-yellow-800 py-2 px-3 sm:px-4 rounded-lg text-center text-xs sm:text-sm">
                     <Clock size={16} className="inline sm:w-[18px] sm:h-[18px] mr-1" />
-                    Aguardando profissional gerar link de pagamento...
+                    Gerando link de pagamento...
                   </div>
                 )}
               </>
@@ -432,7 +432,7 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
               </button>
             )}
 
-            {request.status === 'accepted' && (
+            {request.status === 'accepted' && request.payment_completed && (
               <div className="flex gap-2 mt-2 sm:mt-3">
                 <button
                   onClick={() => {
@@ -451,6 +451,13 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
                   <MessageCircle size={16} />
                   Mensagem
                 </button>
+              </div>
+            )}
+
+            {request.status === 'accepted' && !request.payment_completed && (
+              <div className="w-full mt-2 sm:mt-3 bg-gray-50 border-2 border-gray-200 text-gray-600 py-2 px-3 sm:px-4 rounded-lg text-center text-xs sm:text-sm">
+                <MessageCircle size={16} className="inline sm:w-[18px] sm:h-[18px] mr-1" />
+                Conclua o pagamento para enviar mensagens
               </div>
             )}
 
@@ -489,14 +496,16 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 animate-fadeIn">
             <div className="text-center mb-6">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-10 h-10 text-green-600" />
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="w-10 h-10 text-blue-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                Chamado Aceito!
+                Chamado Criado!
               </h3>
               <p className="text-gray-600">
-                O profissional aceitou seu chamado. Para continuar, realize o pagamento do serviço.
+                {pendingPaymentRequest.status === 'accepted'
+                  ? 'O profissional aceitou seu chamado! Para continuar, realize o pagamento do serviço.'
+                  : 'Seu chamado foi criado! Complete o pagamento para que o profissional possa ver e aceitar sua solicitação.'}
               </p>
             </div>
 
@@ -505,7 +514,11 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
                 <CreditCard className="w-6 h-6 text-blue-600" />
                 <div>
                   <p className="font-semibold text-gray-900">Pagamento Necessário</p>
-                  <p className="text-sm text-gray-600">Clique no botão abaixo para pagar</p>
+                  <p className="text-sm text-gray-600">
+                    {pendingPaymentRequest.status === 'accepted'
+                      ? 'Clique no botão abaixo para pagar'
+                      : 'Efetue o pagamento para que o profissional receba sua solicitação'}
+                  </p>
                 </div>
               </div>
             </div>

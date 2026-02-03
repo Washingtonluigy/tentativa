@@ -130,10 +130,9 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
 
   const checkAvailability = async (professionalId: string) => {
     const today = new Date();
-    const todayDayOfWeek = today.getDay();
+    const todayStr = today.toISOString().split('T')[0];
     const currentTime = today.toTimeString().slice(0, 5);
 
-    // Verificar se profissional está em atendimento
     const { data: appointments } = await supabase
       .from('scheduled_appointments')
       .select('*')
@@ -145,28 +144,24 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
       return { status: 'busy' as const };
     }
 
-    // Verificar horários configurados do profissional
-    const { data: availabilityData } = await supabase
+    const { data: specificDateAvailability } = await supabase
       .from('professional_availability')
       .select('*')
       .eq('professional_id', professionalId)
       .eq('is_active', true)
-      .eq('day_of_week', todayDayOfWeek);
+      .eq('is_available', true)
+      .eq('specific_date', todayStr);
 
-    // Se não tem horário configurado para hoje, está indisponível
-    if (!availabilityData || availabilityData.length === 0) {
-      return { status: 'busy' as const };
-    }
+    if (specificDateAvailability && specificDateAvailability.length > 0) {
+      const isWithinSchedule = specificDateAvailability.some((slot: any) => {
+        const startTime = slot.start_time?.slice(0, 5) || '00:00';
+        const endTime = slot.end_time?.slice(0, 5) || '23:59';
+        return currentTime >= startTime && currentTime <= endTime;
+      });
 
-    // Verificar se está dentro de algum dos horários de hoje
-    const isWithinSchedule = availabilityData.some((slot: any) => {
-      const startTime = slot.start_time.slice(0, 5);
-      const endTime = slot.end_time.slice(0, 5);
-      return currentTime >= startTime && currentTime <= endTime;
-    });
-
-    if (isWithinSchedule) {
-      return { status: 'available' as const };
+      if (isWithinSchedule) {
+        return { status: 'available' as const };
+      }
     }
 
     return { status: 'busy' as const };

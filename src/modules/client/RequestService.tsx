@@ -96,10 +96,9 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
   const checkProfessionalAvailability = async () => {
     try {
       const today = new Date();
-      const todayDayOfWeek = today.getDay();
+      const todayStr = today.toISOString().split('T')[0];
       const currentTime = today.toTimeString().slice(0, 5);
 
-      // Verificar se profissional está em atendimento
       const { data: appointments } = await supabase
         .from('scheduled_appointments')
         .select('*')
@@ -113,30 +112,27 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         return;
       }
 
-      // Verificar horários configurados do profissional
-      const { data: availabilityData } = await supabase
+      const { data: specificDateAvailability } = await supabase
         .from('professional_availability')
         .select('*')
         .eq('professional_id', actualProfessionalId)
         .eq('is_active', true)
-        .eq('day_of_week', todayDayOfWeek);
+        .eq('is_available', true)
+        .eq('specific_date', todayStr);
 
-      // Se não tem horário configurado para hoje, está indisponível
-      if (!availabilityData || availabilityData.length === 0) {
-        setIsAvailable(false);
-        await loadNextAvailableSlots();
-        return;
-      }
+      if (specificDateAvailability && specificDateAvailability.length > 0) {
+        const isWithinSchedule = specificDateAvailability.some((slot: any) => {
+          const startTime = slot.start_time?.slice(0, 5) || '00:00';
+          const endTime = slot.end_time?.slice(0, 5) || '23:59';
+          return currentTime >= startTime && currentTime <= endTime;
+        });
 
-      // Verificar se está dentro de algum dos horários de hoje
-      const isWithinSchedule = availabilityData.some((slot: any) => {
-        const startTime = slot.start_time.slice(0, 5);
-        const endTime = slot.end_time.slice(0, 5);
-        return currentTime >= startTime && currentTime <= endTime;
-      });
-
-      if (isWithinSchedule) {
-        setIsAvailable(true);
+        if (isWithinSchedule) {
+          setIsAvailable(true);
+        } else {
+          setIsAvailable(false);
+          await loadNextAvailableSlots();
+        }
       } else {
         setIsAvailable(false);
         await loadNextAvailableSlots();
@@ -149,54 +145,51 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
 
   const loadNextAvailableSlots = async () => {
     try {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+
       const { data: availabilityData } = await supabase
         .from('professional_availability')
         .select('*')
         .eq('professional_id', actualProfessionalId)
         .eq('is_active', true)
-        .order('day_of_week');
+        .eq('is_available', true)
+        .gte('specific_date', todayStr)
+        .order('specific_date')
+        .limit(10);
 
       if (!availabilityData || availabilityData.length === 0) {
         setAvailableSlots([]);
         return;
       }
 
-      const today = new Date();
-      const todayDayOfWeek = today.getDay();
       const slots: AvailableSlot[] = [];
       const daysOfWeek = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
-      // Agrupar por dia da semana
-      const slotsByDay = new Map<number, { start_time: string; end_time: string }[]>();
+      const slotsByDate = new Map<string, { start_time: string; end_time: string }[]>();
       availabilityData.forEach((slot: any) => {
-        if (!slotsByDay.has(slot.day_of_week)) {
-          slotsByDay.set(slot.day_of_week, []);
+        if (!slotsByDate.has(slot.specific_date)) {
+          slotsByDate.set(slot.specific_date, []);
         }
-        slotsByDay.get(slot.day_of_week)!.push({
+        slotsByDate.get(slot.specific_date)!.push({
           start_time: slot.start_time,
           end_time: slot.end_time
         });
       });
 
-      // Buscar próximos 7 dias com disponibilidade
-      for (let i = 1; i <= 14; i++) {
-        const futureDate = new Date(today);
-        futureDate.setDate(today.getDate() + i);
-        const futureDayOfWeek = futureDate.getDay();
+      slotsByDate.forEach((timeSlots, dateStr) => {
+        const date = new Date(dateStr + 'T00:00:00');
+        const dayOfWeek = date.getDay();
 
-        if (slotsByDay.has(futureDayOfWeek)) {
-          slots.push({
-            day: daysOfWeek[futureDayOfWeek],
-            dayOfWeek: futureDayOfWeek,
-            date: futureDate.toLocaleDateString('pt-BR'),
-            slots: slotsByDay.get(futureDayOfWeek)!
-          });
+        slots.push({
+          day: daysOfWeek[dayOfWeek],
+          dayOfWeek: dayOfWeek,
+          date: date.toLocaleDateString('pt-BR'),
+          slots: timeSlots
+        });
+      });
 
-          if (slots.length >= 5) break;
-        }
-      }
-
-      setAvailableSlots(slots);
+      setAvailableSlots(slots.slice(0, 5));
     } catch (error) {
       console.error('Error loading next available slots:', error);
       setAvailableSlots([]);
@@ -347,7 +340,64 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
 
       console.log('Service request created:', requestData);
 
-      // Criar ou atualizar conversa
+      const amount =
+        serviceType === 'message' ? selectedService.price_message :
+        serviceType === 'video_call' ? selectedService.price_video :
+        selectedService.price_local;
+
+      if (!amount) {
+        console.error('Could not determine service amount');
+        alert('Erro ao determinar o valor do serviço');
+        setLoading(false);
+        return;
+      }
+
+      let maxInstallments = 1;
+      const { data: serviceData } = await supabase
+        .from('professional_services')
+        .select('max_installments')
+        .eq('id', selectedService.id)
+        .maybeSingle();
+
+      if (serviceData) {
+        maxInstallments = serviceData.max_installments || 1;
+      }
+
+      const paymentApiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-create-payment`;
+
+      try {
+        const paymentResponse = await fetch(paymentApiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            serviceRequestId: requestData.id,
+            amount: amount,
+            commissionPercentage: 10,
+            maxInstallments: maxInstallments
+          }),
+        });
+
+        const paymentData = await paymentResponse.json();
+        console.log('Payment creation response:', paymentData);
+
+        if (paymentData.success && paymentData.initPoint) {
+          await supabase
+            .from('service_requests')
+            .update({
+              payment_link: paymentData.initPoint,
+              payment_status: 'pending'
+            })
+            .eq('id', requestData.id);
+        } else {
+          console.error('Failed to create payment:', paymentData);
+        }
+      } catch (paymentError) {
+        console.error('Error creating payment:', paymentError);
+      }
+
       const { data: existingConv } = await supabase
         .from('conversations')
         .select('id')
@@ -369,7 +419,6 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
         }
       }
 
-      // Capturar localização se for atendimento presencial
       if (isHomeService && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
@@ -397,7 +446,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
       }
 
       setLoading(false);
-      setNotificationMessage('Solicitação enviada com sucesso!');
+      setNotificationMessage('Solicitação enviada! Você será redirecionado para o pagamento.');
       setShowNotification(true);
       setTimeout(() => {
         onSuccess();

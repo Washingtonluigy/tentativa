@@ -86,24 +86,27 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
   const checkServiceRequestPaymentStatus = async () => {
     const { data: conversation } = await supabase
       .from('conversations')
-      .select('service_request_id')
+      .select('request_id')
       .eq('id', conversationId)
       .maybeSingle();
 
-    if (conversation?.service_request_id) {
+    if (conversation?.request_id) {
       const { data: serviceRequest } = await supabase
         .from('service_requests')
-        .select('payment_status, id')
-        .eq('id', conversation.service_request_id)
+        .select('payment_completed, payment_link, id')
+        .eq('id', conversation.request_id)
         .maybeSingle();
 
       if (serviceRequest) {
         setServiceRequestId(serviceRequest.id);
 
-        if (serviceRequest.payment_status === 'pending') {
+        if (!serviceRequest.payment_completed) {
           setChatBlocked(true);
+          if (serviceRequest.payment_link) {
+            setPaymentStatus('pending');
+          }
           startPaymentPolling(serviceRequest.id);
-        } else if (serviceRequest.payment_status === 'paid') {
+        } else {
           setChatBlocked(false);
           setPaymentStatus('success');
         }
@@ -119,11 +122,11 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
     paymentCheckInterval.current = setInterval(async () => {
       const { data: serviceRequest } = await supabase
         .from('service_requests')
-        .select('payment_status')
+        .select('payment_completed')
         .eq('id', requestId)
         .maybeSingle();
 
-      if (serviceRequest?.payment_status === 'paid') {
+      if (serviceRequest?.payment_completed) {
         setPaymentStatus('success');
         setChatBlocked(false);
         if (paymentCheckInterval.current) {
