@@ -70,13 +70,6 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
         hasCpfValue = cpfClean.length === 11;
       }
 
-      console.log('DEBUG CPF:', {
-        cpfFromDb,
-        cpfClean,
-        cpfCleanLength: cpfClean.length,
-        hasCpfValue
-      });
-
       setHasCpf(hasCpfValue);
       setIsAdmin(userData.role === 'admin');
 
@@ -247,13 +240,6 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
       </div>
     );
   }
-
-  console.log('RENDER DEBUG:', {
-    hasCpf,
-    isAdmin,
-    cpfValue: formData.cpf,
-    willBeDisabled: hasCpf && !isAdmin
-  });
 
   return (
     <>

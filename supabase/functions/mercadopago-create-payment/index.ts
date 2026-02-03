@@ -105,12 +105,14 @@ Deno.serve(async (req: Request) => {
       .single();
 
     const clientEmail = clientProfile?.email || clientUser?.email;
-    const clientCpf = clientProfile?.cpf;
+    const clientCpfRaw = clientProfile?.cpf;
+    const clientCpfClean = clientCpfRaw ? String(clientCpfRaw).replace(/\D/g, '') : '';
+    const hasValidCpf = clientCpfClean.length === 11;
 
-    if (!clientEmail || !clientCpf) {
+    if (!clientEmail || !hasValidCpf) {
       const missingFields = [];
       if (!clientEmail) missingFields.push("email");
-      if (!clientCpf) missingFields.push("CPF");
+      if (!hasValidCpf) missingFields.push("CPF");
 
       await supabase
         .from("service_requests")
@@ -151,7 +153,7 @@ Deno.serve(async (req: Request) => {
         email: clientEmail,
         identification: {
           type: "CPF",
-          number: clientCpf.replace(/\D/g, '')
+          number: clientCpfClean
         },
       },
       payment_methods: {
