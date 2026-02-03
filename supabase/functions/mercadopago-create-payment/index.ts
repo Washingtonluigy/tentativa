@@ -88,8 +88,14 @@ Deno.serve(async (req: Request) => {
 
     const { data: clientProfile } = await supabase
       .from("profiles")
-      .select("full_name, email")
+      .select("full_name, email, cpf")
       .eq("user_id", serviceRequest.client_id)
+      .single();
+
+    const { data: clientUser } = await supabase
+      .from("users")
+      .select("email")
+      .eq("id", serviceRequest.client_id)
       .single();
 
     const { data: professionalProfile } = await supabase
@@ -97,6 +103,33 @@ Deno.serve(async (req: Request) => {
       .select("full_name")
       .eq("user_id", serviceRequest.professional_id)
       .single();
+
+    const clientEmail = clientProfile?.email || clientUser?.email;
+    const clientCpf = clientProfile?.cpf;
+
+    if (!clientEmail || !clientCpf) {
+      const missingFields = [];
+      if (!clientEmail) missingFields.push("email");
+      if (!clientCpf) missingFields.push("CPF");
+
+      await supabase
+        .from("service_requests")
+        .update({
+          payment_error: `Para realizar o pagamento, é necessário completar seu perfil com: ${missingFields.join(" e ")}. Acesse seu perfil e atualize seus dados.`
+        })
+        .eq("id", serviceRequestId);
+
+      return new Response(
+        JSON.stringify({
+          error: `Missing required payer information: ${missingFields.join(", ")}`,
+          needsProfileUpdate: true
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     const applicationFee = Math.round(amount * (commissionPercentage / 100) * 100) / 100;
     const externalReference = `service-${serviceRequestId}`;
@@ -115,7 +148,11 @@ Deno.serve(async (req: Request) => {
       ],
       payer: {
         name: clientProfile?.full_name || "Cliente",
-        email: clientProfile?.email || `cliente-${serviceRequest.client_id}@example.com`,
+        email: clientEmail,
+        identification: {
+          type: "CPF",
+          number: clientCpf.replace(/\D/g, '')
+        },
       },
       payment_methods: {
         excluded_payment_methods: [],
