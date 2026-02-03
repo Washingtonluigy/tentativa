@@ -61,7 +61,7 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
       .maybeSingle();
 
     if (userData && profileData) {
-      const hasCpfValue = !!profileData.cpf;
+      const hasCpfValue = profileData.cpf && profileData.cpf.length >= 11;
       setHasCpf(hasCpfValue);
       setIsAdmin(userData.role === 'admin');
 
@@ -178,10 +178,17 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
         updateData.photo_url = photoUrl;
       }
 
-      if (!hasCpf && formData.cpf && formData.cpf !== '***.***.***-**') {
+      if (formData.cpf && formData.cpf !== '***.***.***-**') {
         const cpfClean = formData.cpf.replace(/\D/g, '');
         if (cpfClean.length === 11) {
-          updateData.cpf = cpfClean;
+          if (!hasCpf || isAdmin) {
+            updateData.cpf = cpfClean;
+          }
+        } else if (cpfClean.length > 0 && cpfClean.length < 11) {
+          setNotificationMessage('CPF inválido. Deve ter 11 dígitos.');
+          setShowNotification(true);
+          setSaving(false);
+          return;
         }
       }
 
