@@ -61,7 +61,10 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
       .maybeSingle();
 
     if (userData && profileData) {
-      const hasCpfValue = profileData.cpf && profileData.cpf.length >= 11;
+      const cpfValue = profileData.cpf || '';
+      const cpfClean = cpfValue.toString().replace(/\D/g, '');
+      const hasCpfValue = cpfClean.length === 11;
+
       setHasCpf(hasCpfValue);
       setIsAdmin(userData.role === 'admin');
 
