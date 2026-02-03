@@ -28,7 +28,11 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
     phone: '',
     state: '',
     city: '',
+    cpf: '',
   });
+
+  const [hasCpf, setHasCpf] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -46,23 +50,28 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
 
     const { data: userData } = await supabase
       .from('users')
-      .select('email, state, city')
+      .select('email, state, city, role')
       .eq('id', user.id)
       .maybeSingle();
 
     const { data: profileData } = await supabase
       .from('profiles')
-      .select('full_name, phone, photo_url')
+      .select('full_name, phone, photo_url, cpf')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (userData && profileData) {
+      const hasCpfValue = !!profileData.cpf;
+      setHasCpf(hasCpfValue);
+      setIsAdmin(userData.role === 'admin');
+
       setFormData({
         fullName: profileData.full_name || '',
         email: userData.email || '',
         phone: profileData.phone || '',
         state: userData.state || '',
         city: userData.city || '',
+        cpf: hasCpfValue ? '***.***.***-**' : '',
       });
       setPhotoPreview(profileData.photo_url || '');
     }
@@ -167,6 +176,13 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
 
       if (photoUrl) {
         updateData.photo_url = photoUrl;
+      }
+
+      if (!hasCpf && formData.cpf && formData.cpf !== '***.***.***-**') {
+        const cpfClean = formData.cpf.replace(/\D/g, '');
+        if (cpfClean.length === 11) {
+          updateData.cpf = cpfClean;
+        }
       }
 
       const { error: profileError } = await supabase
@@ -294,6 +310,50 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <User className="w-4 h-4 inline mr-1" />
+                CPF
+              </label>
+              <input
+                type="text"
+                value={formData.cpf}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  let formatted = value;
+                  if (value.length > 0) {
+                    formatted = value.substring(0, 3);
+                    if (value.length >= 4) {
+                      formatted += '.' + value.substring(3, 6);
+                    }
+                    if (value.length >= 7) {
+                      formatted += '.' + value.substring(6, 9);
+                    }
+                    if (value.length >= 10) {
+                      formatted += '-' + value.substring(9, 11);
+                    }
+                  }
+                  setFormData({ ...formData, cpf: formatted });
+                }}
+                disabled={hasCpf && !isAdmin}
+                placeholder="000.000.000-00"
+                maxLength={14}
+                className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none ${
+                  hasCpf && !isAdmin ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                }`}
+              />
+              {hasCpf && !isAdmin && (
+                <p className="text-xs text-gray-500 mt-1">
+                  CPF cadastrado e protegido. Apenas administradores podem alterar.
+                </p>
+              )}
+              {!hasCpf && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⚠️ Importante: Após salvar, o CPF não poderá ser alterado por segurança.
+                </p>
+              )}
             </div>
 
             <div>
