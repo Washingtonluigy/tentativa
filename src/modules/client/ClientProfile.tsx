@@ -61,9 +61,21 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
       .maybeSingle();
 
     if (userData && profileData) {
-      const cpfValue = profileData.cpf || '';
-      const cpfClean = cpfValue.toString().replace(/\D/g, '');
-      const hasCpfValue = cpfClean.length === 11;
+      let cpfFromDb = profileData.cpf;
+      let cpfClean = '';
+      let hasCpfValue = false;
+
+      if (cpfFromDb !== null && cpfFromDb !== undefined && cpfFromDb !== '') {
+        cpfClean = String(cpfFromDb).replace(/\D/g, '');
+        hasCpfValue = cpfClean.length === 11;
+      }
+
+      console.log('DEBUG CPF:', {
+        cpfFromDb,
+        cpfClean,
+        cpfCleanLength: cpfClean.length,
+        hasCpfValue
+      });
 
       setHasCpf(hasCpfValue);
       setIsAdmin(userData.role === 'admin');
@@ -235,6 +247,13 @@ export function ClientProfile({ onClose }: { onClose: () => void }) {
       </div>
     );
   }
+
+  console.log('RENDER DEBUG:', {
+    hasCpf,
+    isAdmin,
+    cpfValue: formData.cpf,
+    willBeDisabled: hasCpf && !isAdmin
+  });
 
   return (
     <>
