@@ -22,14 +22,14 @@ export function ProfessionalModule() {
   };
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', value: 'dashboard' },
-    { icon: Briefcase, label: 'Serviços', value: 'services' },
-    { icon: Bell, label: 'Chamados', value: 'requests' },
-    { icon: FileText, label: 'Prontuários', value: 'medical-records' },
+    { icon: LayoutDashboard, label: 'Painel', value: 'dashboard' },
+    { icon: Briefcase, label: 'Serv.', value: 'services' },
+    { icon: Bell, label: 'Cham.', value: 'requests' },
+    { icon: FileText, label: 'Pront.', value: 'medical-records' },
     { icon: Calendar, label: 'Agenda', value: 'schedule' },
-    { icon: CreditCard, label: 'Pagamentos', value: 'payments' },
+    { icon: CreditCard, label: 'Pagam.', value: 'payments' },
     { icon: MapPin, label: 'GPS', value: 'gps' },
-    { icon: MessageCircle, label: 'Conversas', value: 'conversations', badge: unreadCount },
+    { icon: MessageCircle, label: 'Convers.', value: 'conversations', badge: unreadCount },
   ];
 
   const renderContent = () => {

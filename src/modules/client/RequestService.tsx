@@ -388,14 +388,27 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
             .from('service_requests')
             .update({
               payment_link: paymentData.initPoint,
-              payment_status: 'pending'
+              payment_completed: false
             })
             .eq('id', requestData.id);
         } else {
           console.error('Failed to create payment:', paymentData);
+          const errorMsg = paymentData.error || 'Erro ao gerar link de pagamento';
+          await supabase
+            .from('service_requests')
+            .update({
+              payment_error: errorMsg
+            })
+            .eq('id', requestData.id);
         }
       } catch (paymentError) {
         console.error('Error creating payment:', paymentError);
+        await supabase
+          .from('service_requests')
+          .update({
+            payment_error: 'Erro ao conectar com servidor de pagamento'
+          })
+          .eq('id', requestData.id);
       }
 
       const { data: existingConv } = await supabase
@@ -637,7 +650,7 @@ export function RequestService({ professionalId, professionalName, onBack, onSuc
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
-            rows={4}
+            rows={2}
             placeholder="Descreva sua necessidade ou dúvida..."
           />
         </div>
