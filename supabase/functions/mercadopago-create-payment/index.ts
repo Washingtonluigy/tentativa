@@ -86,28 +86,44 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const { data: clientProfile } = await supabase
+    const { data: clientProfile, error: clientProfileError } = await supabase
       .from("profiles")
       .select("full_name, email, cpf")
       .eq("user_id", serviceRequest.client_id)
-      .single();
+      .maybeSingle();
 
-    const { data: clientUser } = await supabase
+    const { data: clientUser, error: clientUserError } = await supabase
       .from("users")
       .select("email")
       .eq("id", serviceRequest.client_id)
-      .single();
+      .maybeSingle();
 
-    const { data: professionalProfile } = await supabase
+    const { data: professionalProfile, error: professionalProfileError } = await supabase
       .from("profiles")
       .select("full_name")
       .eq("user_id", serviceRequest.professional_id)
-      .single();
+      .maybeSingle();
+
+    console.log('=== PROFILE FETCH DEBUG ===');
+    console.log('clientProfileError:', clientProfileError);
+    console.log('clientUserError:', clientUserError);
+    console.log('professionalProfileError:', professionalProfileError);
+    console.log('==========================');
 
     const clientEmail = clientProfile?.email || clientUser?.email;
     const clientCpfRaw = clientProfile?.cpf;
     const clientCpfClean = clientCpfRaw ? String(clientCpfRaw).replace(/\D/g, '') : '';
     const hasValidCpf = clientCpfClean.length === 11;
+
+    console.log('=== CPF VALIDATION DEBUG ===');
+    console.log('clientProfile:', JSON.stringify(clientProfile));
+    console.log('clientCpfRaw:', clientCpfRaw);
+    console.log('clientCpfRaw type:', typeof clientCpfRaw);
+    console.log('clientCpfClean:', clientCpfClean);
+    console.log('clientCpfClean length:', clientCpfClean.length);
+    console.log('hasValidCpf:', hasValidCpf);
+    console.log('clientEmail:', clientEmail);
+    console.log('=========================');
 
     if (!clientEmail || !hasValidCpf) {
       const missingFields = [];
