@@ -23,7 +23,7 @@ export default function SACPopup() {
     <>
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="fixed bottom-24 right-4 bg-blue-600 bg-opacity-30 text-white rounded-2xl shadow-lg hover:bg-opacity-50 transition-all z-40 hover:scale-105 flex flex-col items-center gap-1 px-3 py-2"
+        className="fixed bottom-24 right-4 bg-transparent text-white rounded-2xl shadow-lg hover:bg-white hover:bg-opacity-10 transition-all z-40 hover:scale-105 flex flex-col items-center gap-1 px-3 py-2"
         title="SAC - Atendimento ao Cliente"
       >
         <Headphones className="w-6 h-6" />
