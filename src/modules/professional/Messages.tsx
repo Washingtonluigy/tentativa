@@ -110,6 +110,7 @@ export default function Messages() {
         currentUserId={user?.id || ''}
         otherUserName={selectedConversation.client_name}
         onBack={() => setSelectedConversation(null)}
+        isProfessional={true}
       />
     );
   }

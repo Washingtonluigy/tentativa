@@ -16,6 +16,8 @@ export function ProfessionalDashboard({ onNavigateToGPS }: ProfessionalDashboard
     total: 0,
   });
   const [activeHomeServices, setActiveHomeServices] = useState(0);
+  const [rating, setRating] = useState(4.0);
+  const [ratingCount, setRatingCount] = useState(0);
 
   useEffect(() => {
     loadStats();
@@ -67,6 +69,17 @@ export function ProfessionalDashboard({ onNavigateToGPS }: ProfessionalDashboard
     });
 
     setActiveHomeServices(homeServicesRes.count || 0);
+
+    const { data: profData } = await supabase
+      .from('professionals')
+      .select('rating, rating_count')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (profData) {
+      setRating(profData.rating || 4.0);
+      setRatingCount(profData.rating_count || 0);
+    }
   };
 
   const statCards = [
@@ -131,7 +144,7 @@ export function ProfessionalDashboard({ onNavigateToGPS }: ProfessionalDashboard
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Avaliação Média</span>
-            <span className="font-semibold text-teal-500">4.8 ⭐</span>
+            <span className="font-semibold text-teal-500">{Math.min(5.0, rating).toFixed(1)} ({ratingCount})</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-gray-600">Taxa de Resposta</span>

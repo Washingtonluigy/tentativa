@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare, Mail, CheckCircle, Info, Camera } from 'lucide-react';
+import { Clock, Check, X, User, MapPin, Phone, Video, MessageSquare, Mail, CheckCircle, Info, Camera, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { VideoCallRoom } from '../../components/VideoCallRoom';
+import PrescriptionForm from '../../components/PrescriptionForm';
 
 interface ServiceRequest {
   id: string;
@@ -50,6 +51,8 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [videoCallRoom, setVideoCallRoom] = useState<{ roomId: string; userName: string } | null>(null);
   const [showVideoInstructions, setShowVideoInstructions] = useState(false);
+  const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
+  const [prescriptionRequest, setPrescriptionRequest] = useState<ServiceRequest | null>(null);
 
   useEffect(() => {
     loadRequests();
@@ -736,6 +739,21 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
                   Mandar Mensagem
                 </button>
                 <button
+                  onClick={() => {
+                    if (!selectedClient) return;
+                    const req = requests.find(r => r.id === selectedClient.requestId);
+                    if (req) {
+                      setPrescriptionRequest(req);
+                      setShowPrescriptionForm(true);
+                      setShowClientModal(false);
+                    }
+                  }}
+                  className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-blue-600 transition flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-5 h-5" />
+                  Criar Prescricao Medica
+                </button>
+                <button
                   onClick={handleCompleteService}
                   className="w-full bg-green-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-green-600 transition flex items-center justify-center gap-2"
                 >
@@ -755,6 +773,23 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
           onClose={() => {
             setVideoCallRoom(null);
             loadRequests();
+          }}
+        />
+      )}
+
+      {showPrescriptionForm && prescriptionRequest && user && (
+        <PrescriptionForm
+          serviceRequestId={prescriptionRequest.id}
+          professionalId={user.id}
+          clientId={prescriptionRequest.client_id}
+          onClose={() => {
+            setShowPrescriptionForm(false);
+            setPrescriptionRequest(null);
+          }}
+          onSaved={() => {
+            setShowPrescriptionForm(false);
+            setPrescriptionRequest(null);
+            alert('Prescricao salva com sucesso!');
           }}
         />
       )}

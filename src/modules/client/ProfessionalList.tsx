@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X, MessageSquare, Video, Home, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, User, Star, ArrowLeft, Clock, Calendar, AlertCircle, MapPin, X, MessageSquare, Video, Home, ChevronDown, ChevronUp, Eye } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import ProfessionalProfileModal from '../../components/ProfessionalProfileModal';
 
 interface Category {
   id: string;
@@ -19,6 +20,8 @@ interface Professional {
   photo_url: string;
   availability_status: 'available' | 'busy';
   next_available?: string;
+  rating: number;
+  rating_count: number;
 }
 
 interface ProfessionalListProps {
@@ -49,6 +52,7 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
   const [selectedFilterState, setSelectedFilterState] = useState<string>('');
   const [selectedFilterCity, setSelectedFilterCity] = useState<string>('');
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [profileModalUserId, setProfileModalUserId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCategories();
@@ -230,6 +234,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           category_name: categoryData?.name || '',
           photo_url: profileData?.photo_url || '',
           availability_status: availabilityStatus.status,
+          rating: p.rating || 4.0,
+          rating_count: p.rating_count || 0,
         };
       })
     );
@@ -254,6 +260,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
           category_id,
           description,
           experience_years,
+          rating,
+          rating_count,
           users!inner(city, state)
         `)
         .eq('category_id', category.id)
@@ -298,6 +306,8 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             category_name: category.name,
             photo_url: profileData?.photo_url || '',
             availability_status: availabilityStatus.status,
+            rating: (p as any).rating || 4.0,
+            rating_count: (p as any).rating_count || 0,
           };
         })
       );
@@ -482,10 +492,14 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
                           <h3 className="font-semibold text-gray-800 text-lg">{professional.full_name}</h3>
                           <p className="text-sm text-teal-600">{professional.category_name}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <div className="flex items-center text-yellow-500">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setProfileModalUserId(professional.user_id); }}
+                              className="flex items-center text-yellow-500 hover:text-yellow-600 transition"
+                            >
                               <Star className="w-4 h-4 fill-current" />
-                              <span className="text-sm ml-1 text-gray-700">4.8</span>
-                            </div>
+                              <span className="text-sm ml-1 text-gray-700">{Math.min(5.0, professional.rating || 4.0).toFixed(1)}</span>
+                              <span className="text-xs text-gray-400 ml-1">({professional.rating_count || 0})</span>
+                            </button>
                             <span className="text-sm text-gray-500">
                               • {professional.experience_years} anos
                             </span>
@@ -884,6 +898,17 @@ export function ProfessionalList({ onRequestService }: ProfessionalListProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {profileModalUserId && (
+        <ProfessionalProfileModal
+          professionalUserId={profileModalUserId}
+          onClose={() => setProfileModalUserId(null)}
+          onRequestService={(profId, profName) => {
+            setProfileModalUserId(null);
+            onRequestService(profId, profName);
+          }}
+        />
       )}
 
       {/* Modal de Seleção de Tipo de Urgência */}

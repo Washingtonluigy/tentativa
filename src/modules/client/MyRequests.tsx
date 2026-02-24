@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, MapPinIcon, Briefcase, Award, Video, Camera } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, AlertCircle, MapPin, CreditCard, ExternalLink, MessageCircle, User, X, MapPinIcon, Briefcase, Award, Video, Camera, Star, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import ClientGPSTracking from './ClientGPSTracking';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { VideoCallRoom } from '../../components/VideoCallRoom';
+import RatingModal from '../../components/RatingModal';
+import PrescriptionView from '../../components/PrescriptionView';
 
 interface Request {
   id: string;
@@ -46,9 +48,26 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
   const [videoCallRoom, setVideoCallRoom] = useState<{ roomId: string; userName: string } | null>(null);
   const [showVideoCallNotification, setShowVideoCallNotification] = useState(false);
   const [pendingVideoCallRequest, setPendingVideoCallRequest] = useState<Request | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingRequest, setRatingRequest] = useState<Request | null>(null);
+  const [ratedRequests, setRatedRequests] = useState<Set<string>>(new Set());
+  const [showPrescriptionView, setShowPrescriptionView] = useState(false);
+  const [prescriptionRequestId, setPrescriptionRequestId] = useState<string | null>(null);
+
+  const loadRatedRequests = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('professional_ratings')
+      .select('service_request_id')
+      .eq('client_id', user.id);
+    if (data) {
+      setRatedRequests(new Set(data.map((r: any) => r.service_request_id)));
+    }
+  };
 
   useEffect(() => {
     loadRequests();
+    loadRatedRequests();
 
     // Subscrever a mudanças nas solicitações para detectar aceitação
     const subscription = supabase
@@ -490,11 +509,75 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
         ))}
       </div>
 
-      {activeRequests.length === 0 && (
+      {activeRequests.length === 0 && completedRequests.length === 0 && (
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600">Nenhum chamado realizado</p>
         </div>
+      )}
+
+      {completedRequests.length > 0 && (
+        <>
+          <h3 className="text-base sm:text-lg font-bold text-gray-700 mt-6 mb-3">Atendimentos Concluidos</h3>
+          <div className="space-y-3 sm:space-y-4">
+            {completedRequests.map((request) => (
+              <div
+                key={request.id}
+                className="rounded-lg sm:rounded-xl shadow-sm p-3 sm:p-4 border-2 bg-blue-50 border-blue-200"
+              >
+                <div className="flex items-start justify-between mb-2 gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-sm sm:text-base text-gray-800 truncate">{request.professional_name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 capitalize truncate">{getServiceTypeLabel(request.service_type)}</p>
+                  </div>
+                  <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[10px] sm:text-xs text-gray-500">
+                    {new Date(request.created_at).toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-blue-700">Concluido</span>
+                </div>
+
+                <div className="flex gap-2 mt-2">
+                  {!ratedRequests.has(request.id) ? (
+                    <button
+                      onClick={() => {
+                        setRatingRequest(request);
+                        setShowRatingModal(true);
+                      }}
+                      className="flex-1 bg-yellow-50 text-yellow-700 py-2 px-3 rounded-lg font-medium hover:bg-yellow-100 transition flex items-center justify-center gap-1 text-xs sm:text-sm border border-yellow-300"
+                    >
+                      <Star size={16} />
+                      Avaliar
+                    </button>
+                  ) : (
+                    <div className="flex-1 bg-green-50 text-green-700 py-2 px-3 rounded-lg font-medium flex items-center justify-center gap-1 text-xs sm:text-sm border border-green-300">
+                      <CheckCircle size={16} />
+                      Avaliado
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setPrescriptionRequestId(request.id);
+                      setShowPrescriptionView(true);
+                    }}
+                    className="flex-1 bg-teal-50 text-teal-700 py-2 px-3 rounded-lg font-medium hover:bg-teal-100 transition flex items-center justify-center gap-1 text-xs sm:text-sm border border-teal-300"
+                  >
+                    <FileText size={16} />
+                    Ver Prescricao
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Modal de Pagamento */}
@@ -785,6 +868,34 @@ export function MyRequests({ onOpenChat }: MyRequestsProps) {
           onClose={() => {
             setVideoCallRoom(null);
             loadRequests();
+          }}
+        />
+      )}
+
+      {showRatingModal && ratingRequest && user && (
+        <RatingModal
+          serviceRequestId={ratingRequest.id}
+          professionalId={ratingRequest.professional_id}
+          clientId={user.id}
+          professionalName={ratingRequest.professional_name}
+          onClose={() => {
+            setShowRatingModal(false);
+            setRatingRequest(null);
+          }}
+          onSubmitted={() => {
+            setShowRatingModal(false);
+            setRatingRequest(null);
+            loadRatedRequests();
+          }}
+        />
+      )}
+
+      {showPrescriptionView && prescriptionRequestId && (
+        <PrescriptionView
+          serviceRequestId={prescriptionRequestId}
+          onClose={() => {
+            setShowPrescriptionView(false);
+            setPrescriptionRequestId(null);
           }}
         />
       )}

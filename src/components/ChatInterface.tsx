@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, ArrowLeft, User, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Send, ArrowLeft, User, Clock, CheckCircle, XCircle, Paperclip, FileText, Download } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface Message {
@@ -9,6 +9,8 @@ interface Message {
   created_at: string;
   sender_name: string;
   is_mine: boolean;
+  attachment_url?: string | null;
+  attachment_type?: string | null;
 }
 
 interface ChatInterfaceProps {
@@ -16,16 +18,19 @@ interface ChatInterfaceProps {
   currentUserId: string;
   otherUserName: string;
   onBack: () => void;
+  isProfessional?: boolean;
 }
 
-export default function ChatInterface({ conversationId, currentUserId, otherUserName, onBack }: ChatInterfaceProps) {
+export default function ChatInterface({ conversationId, currentUserId, otherUserName, onBack, isProfessional = false }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [serviceRequestId, setServiceRequestId] = useState<string | null>(null);
   const [chatBlocked, setChatBlocked] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const paymentCheckInterval = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
@@ -47,8 +52,7 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         },
-        (payload) => {
-          console.log('Message changed:', payload);
+        () => {
           loadMessages();
         }
       )
@@ -74,9 +78,7 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
     if (paymentParam && serviceRequestParam) {
       setPaymentStatus(paymentParam);
       setServiceRequestId(serviceRequestParam);
-
       window.history.replaceState({}, document.title, window.location.pathname);
-
       if (paymentParam === 'success' || paymentParam === 'pending') {
         startPaymentPolling(serviceRequestParam);
       }
@@ -99,7 +101,6 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
 
       if (serviceRequest) {
         setServiceRequestId(serviceRequest.id);
-
         if (!serviceRequest.payment_completed) {
           setChatBlocked(true);
           if (serviceRequest.payment_link) {
@@ -158,8 +159,10 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
           sender_id: msg.sender_id,
           content: msg.content,
           created_at: msg.created_at,
-          sender_name: senderData?.full_name || 'Usuário',
+          sender_name: senderData?.full_name || 'Usuario',
           is_mine: msg.sender_id === currentUserId,
+          attachment_url: msg.attachment_url,
+          attachment_type: msg.attachment_type,
         };
       })
     );
@@ -194,6 +197,65 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Tipo de arquivo nao suportado. Use imagens (JPG, PNG, GIF) ou PDF.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Arquivo muito grande. Maximo 10MB.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const filePath = `${conversationId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-attachments')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Erro ao fazer upload:', uploadError);
+        alert('Erro ao enviar arquivo');
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('chat-attachments')
+        .getPublicUrl(filePath);
+
+      const attachmentType = file.type.startsWith('image/') ? 'image' : 'pdf';
+      const displayName = file.name;
+
+      await supabase.from('messages').insert({
+        conversation_id: conversationId,
+        sender_id: currentUserId,
+        content: displayName,
+        message_type: attachmentType,
+        attachment_url: urlData.publicUrl,
+        attachment_type: attachmentType,
+        read: false,
+      });
+
+      await loadMessages();
+    } catch (error) {
+      console.error('Erro ao enviar arquivo:', error);
+      alert('Erro ao enviar arquivo');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -201,9 +263,44 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
     }
   };
 
-  const renderMessageContent = (content: string) => {
+  const renderMessageContent = (msg: Message) => {
+    if (msg.attachment_url && msg.attachment_type === 'image') {
+      return (
+        <div>
+          <img
+            src={msg.attachment_url}
+            alt={msg.content}
+            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition"
+            style={{ maxHeight: '300px' }}
+            onClick={() => window.open(msg.attachment_url!, '_blank')}
+          />
+          <p className="text-xs mt-1 opacity-70">{msg.content}</p>
+        </div>
+      );
+    }
+
+    if (msg.attachment_url && msg.attachment_type === 'pdf') {
+      return (
+        <a
+          href={msg.attachment_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex items-center gap-2 p-2 rounded-lg transition ${
+            msg.is_mine ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-100 hover:bg-gray-200'
+          }`}
+        >
+          <FileText className="w-8 h-8 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{msg.content}</p>
+            <p className="text-xs opacity-70">PDF</p>
+          </div>
+          <Download className="w-4 h-4 flex-shrink-0" />
+        </a>
+      );
+    }
+
     const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const parts = content.split(urlRegex);
+    const parts = msg.content.split(urlRegex);
 
     return parts.map((part, index) => {
       if (part.match(urlRegex)) {
@@ -264,15 +361,15 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
                   'text-red-800'
                 }`}>
                   {paymentStatus === 'success' && 'Pagamento Confirmado!'}
-                  {paymentStatus === 'pending' && 'Aguardando Confirmação do Pagamento...'}
-                  {paymentStatus === 'failure' && 'Pagamento Não Realizado'}
+                  {paymentStatus === 'pending' && 'Aguardando Confirmacao do Pagamento...'}
+                  {paymentStatus === 'failure' && 'Pagamento Nao Realizado'}
                 </h3>
                 <p className={`text-sm ${
                   paymentStatus === 'success' ? 'text-green-600' :
                   paymentStatus === 'pending' ? 'text-yellow-600' :
                   'text-red-600'
                 }`}>
-                  {paymentStatus === 'success' && 'Agora você pode conversar com o profissional.'}
+                  {paymentStatus === 'success' && 'Agora voce pode conversar com o profissional.'}
                   {paymentStatus === 'pending' && 'Verificando seu pagamento automaticamente...'}
                   {paymentStatus === 'failure' && 'Tente realizar o pagamento novamente.'}
                 </p>
@@ -301,7 +398,7 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
               <Send size={24} className="sm:w-8 sm:h-8 text-gray-300" />
             </div>
             <p className="text-sm sm:text-base font-medium">Nenhuma mensagem ainda</p>
-            <p className="text-xs sm:text-sm">Envie uma mensagem para começar</p>
+            <p className="text-xs sm:text-sm">Envie uma mensagem para comecar</p>
           </div>
         ) : (
           messages.map((msg) => (
@@ -319,7 +416,7 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
                 {!msg.is_mine && (
                   <div className="text-[10px] sm:text-xs font-semibold text-purple-600 mb-1">{msg.sender_name}</div>
                 )}
-                <div className="text-sm sm:text-[15px] leading-relaxed break-words">{renderMessageContent(msg.content)}</div>
+                <div className="text-sm sm:text-[15px] leading-relaxed break-words">{renderMessageContent(msg)}</div>
                 <div className={`text-[10px] sm:text-[11px] mt-1 sm:mt-1.5 ${msg.is_mine ? 'text-purple-100' : 'text-gray-400'}`}>
                   {new Date(msg.created_at).toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
@@ -334,7 +431,30 @@ export default function ChatInterface({ conversationId, currentUserId, otherUser
       </div>
 
       <div className="bg-white border-t border-gray-200 shadow-lg flex-shrink-0">
-        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex gap-2 sm:gap-3">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex gap-2 sm:gap-3 items-center">
+          {isProfessional && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || chatBlocked}
+                className="p-2.5 sm:p-3.5 text-gray-500 hover:text-purple-600 hover:bg-purple-50 rounded-xl sm:rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                title="Anexar arquivo"
+              >
+                {uploading ? (
+                  <div className="w-[18px] h-[18px] sm:w-5 sm:h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Paperclip size={18} className="sm:w-5 sm:h-5" />
+                )}
+              </button>
+            </>
+          )}
           <input
             type="text"
             value={newMessage}
