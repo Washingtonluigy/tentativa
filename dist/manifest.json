@@ -1,30 +1,79 @@
 {
-  "name": "AmaH - Health Professional Connect",
+  "id": "amah-health-connect",
+  "name": "AmaH - Plataforma de Saúde",
   "short_name": "AmaH",
-  "description": "Conecte-se com profissionais de saúde",
+  "description": "Conecte-se com profissionais de saúde. Agende consultas, teleatendimento e serviços de saúde na palma da sua mão.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#ffffff",
-  "theme_color": "#8b5cf6",
+  "theme_color": "#0ea5e9",
   "orientation": "portrait",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["health", "medical", "lifestyle"],
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/jpeg",
+      "purpose": "any"
     },
     {
-      "src": "/logo_amah.png",
-      "sizes": "1080x1080",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/whatsapp_image_2026-01-09_at_12.06.50.jpeg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Tela inicial do AmaH"
+    },
+    {
+      "src": "/whatsapp_image_2026-01-09_at_12.11.07.jpeg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Profissionais de saúde disponíveis"
+    },
+    {
+      "src": "/whatsapp_image_2026-01-09_at_12.18.13.jpeg",
+      "sizes": "720x1280",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Agendamento de consultas"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Buscar Profissional",
+      "short_name": "Buscar",
+      "description": "Encontre um profissional de saúde",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/jpeg" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  }
 }
