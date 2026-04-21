@@ -349,7 +349,7 @@ export function ServiceRequests({ onRequestUpdate, onNavigateToConversations }: 
       onConfirm: async () => {
         await supabase
           .from('service_requests')
-          .update({ status: 'completed' })
+          .update({ status: 'completed', completed_at: new Date().toISOString() })
           .eq('id', selectedClient.requestId);
 
         setConfirmModal({ ...confirmModal, isOpen: false });
